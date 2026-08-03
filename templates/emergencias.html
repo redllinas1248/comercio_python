@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="dir-header">
+  <button class="btn-back" onclick="history.back()">
+    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+      <polyline points="15 18 9 12 15 6"/>
+    </svg> Volver
+  </button>
+  <h2 class="dir-title">🚨 Emergencias y Comercios</h2>
+  <p class="dir-sub">Información esencial de José Azueta</p>
+</div>
+
+<div id="dir-wrap"></div>
+
+<script>
+async function cargarDirectorio() {
+  const wrap = document.getElementById('dir-wrap');
+  wrap.innerHTML = `<div class="spinner-feed"><span></span><span></span><span></span></div>`;
+  try {
+    const grupos = await api('/api/directorio');
+    const cats   = Object.keys(grupos);
+
+    if (!cats.length) {
+      wrap.innerHTML = `<div class="empty">
+        <div class="empty-icon">📋</div>
+        <p>Aún no hay información disponible.<br>El administrador la agregará pronto.</p>
+      </div>`;
+      return;
+    }
+
+    wrap.innerHTML = cats.map(cat => `
+      <div class="dir-grupo">
+        <div class="dir-grupo-titulo">${escapeHtml(cat)}</div>
+        <div class="dir-lista">
+          ${grupos[cat].map(item => `
+            <div class="dir-item">
+              <div class="dir-ico">${item.icono || '📍'}</div>
+              <div class="dir-info">
+                <div class="dir-nombre">${escapeHtml(item.nombre)}</div>
+                ${item.horario  ? `<div class="dir-dato">🕐 ${escapeHtml(item.horario)}</div>`  : ''}
+                ${item.direccion? `<div class="dir-dato">📍 ${escapeHtml(item.direccion)}</div>`:''}
+              </div>
+              ${item.telefono ? `
+                <a href="tel:${item.telefono}" class="dir-tel-btn">
+                  <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.68A2 2 0 012 .84h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 8.69a16 16 0 006.29 6.29l1.21-1.21a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
+                  </svg>
+                  ${escapeHtml(item.telefono)}
+                </a>` : ''}
+            </div>`).join('')}
+        </div>
+      </div>`).join('');
+  } catch(e) {
+    wrap.innerHTML = `<div class="empty"><p>${e.message}</p></div>`;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', cargarDirectorio);
+</script>
+{% endblock %}

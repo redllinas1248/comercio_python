@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="notif-header">
+  <h2 class="notif-title">Notificaciones</h2>
+  <button class="notif-clear" onclick="marcarLeidas()">Marcar todas leídas</button>
+</div>
+<div id="notif-wrap"></div>
+
+<script>
+async function cargarNotificaciones() {
+  const wrap = document.getElementById('notif-wrap');
+  wrap.innerHTML = `<div class="spinner-feed"><span></span><span></span><span></span></div>`;
+  try {
+    const notifs = await api('/api/notificaciones');
+    if (!notifs.length) {
+      wrap.innerHTML = `<div class="empty">
+        <div class="empty-icon">🔔</div>
+        <p>Sin notificaciones por ahora.</p>
+      </div>`;
+      return;
+    }
+    wrap.innerHTML = `<div class="notif-list">${notifs.map(n => `
+      <div class="notif-item ${n.leida ? '' : 'no-leida'}">
+        <div class="notif-dot ${n.leida ? '' : 'activo'}"></div>
+        <div class="notif-body">
+          <p class="notif-msg">${escapeHtml(n.mensaje)}</p>
+          <p class="notif-fecha">${timeAgo(n.fecha)}</p>
+        </div>
+      </div>`).join('')}
+    </div>`;
+  } catch(e) {
+    wrap.innerHTML = `<div class="empty"><p>${e.message}</p></div>`;
+  }
+}
+
+async function marcarLeidas() {
+  try {
+    await api('/api/notificaciones/marcar-leidas', 'POST');
+    toast('✅ Todas marcadas como leídas');
+    cargarNotificaciones();
+    const badge = document.getElementById('notif-count');
+    if (badge) badge.style.display = 'none';
+  } catch(e) { toast(e.message); }
+}
+
+document.addEventListener('DOMContentLoaded', cargarNotificaciones);
+</script>
+{% endblock %}

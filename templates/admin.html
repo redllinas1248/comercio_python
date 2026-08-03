@@ -1,0 +1,305 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="admin-wrap">
+  <div class="admin-header">
+    <h2 class="admin-title">⚙️ Panel Admin</h2>
+  </div>
+
+  <div class="admin-tabs">
+    <button class="admin-tab active" onclick="setAdminTab('pubs', this)">Publicaciones</button>
+    <button class="admin-tab" onclick="setAdminTab('users', this)">Usuarios</button>
+    <button class="admin-tab" onclick="setAdminTab('directorio', this)">Directorio</button>
+  </div>
+
+  <div id="admin-pubs">
+    <div id="pubs-wrap"></div>
+  </div>
+  <div id="admin-users" style="display:none">
+    <div id="users-wrap"></div>
+  </div>
+  <div id="admin-directorio" style="display:none">
+    <div class="dir-admin-form" id="dir-form">
+      <h3 class="p-section-title" style="margin-bottom:.75rem">Agregar entrada</h3>
+      <div class="dir-form-grid">
+        <div class="p-field">
+          <label>Ícono</label>
+          <input id="df-icono" type="text" value="📍" placeholder="Emoji" maxlength="4" style="width:70px"/>
+        </div>
+        <div class="p-field" style="grid-column:span 2">
+          <label>Categoría</label>
+          <input id="df-cat" type="text" placeholder="Ej: Farmacias, Emergencias, Hospitales..." list="cats-list"/>
+          <datalist id="cats-list"></datalist>
+        </div>
+        <div class="p-field" style="grid-column:span 3">
+          <label>Nombre</label>
+          <input id="df-nombre" type="text" placeholder="Ej: Farmacia Similar"/>
+        </div>
+        <div class="p-field" style="grid-column:span 2">
+          <label>Teléfono</label>
+          <input id="df-tel" type="tel" placeholder="Ej: 322 123 4567"/>
+        </div>
+        <div class="p-field" style="grid-column:span 2">
+          <label>Horario</label>
+          <input id="df-horario" type="text" placeholder="Ej: 8:00am - 10:00pm"/>
+        </div>
+        <div class="p-field" style="grid-column:span 4">
+          <label>Dirección (opcional)</label>
+          <input id="df-dir" type="text" placeholder="Ej: Calle Hidalgo 45"/>
+        </div>
+      </div>
+      <button class="p-btn-save" style="margin-top:.75rem" onclick="guardarDir()">
+        <span class="btn-text" id="df-btn-txt">➕ Agregar</span>
+        <div class="spinner-btn"></div>
+      </button>
+      <input type="hidden" id="df-edit-id" value=""/>
+    </div>
+    <div id="dir-admin-wrap" style="margin-top:1rem"></div>
+  </div>
+</div>
+
+<script>
+function setAdminTab(tab, el) {
+  document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('admin-pubs').style.display        = tab === 'pubs'       ? 'block' : 'none';
+  document.getElementById('admin-users').style.display       = tab === 'users'      ? 'block' : 'none';
+  document.getElementById('admin-directorio').style.display  = tab === 'directorio' ? 'block' : 'none';
+  if (tab === 'pubs')       cargarAdminPubs();
+  if (tab === 'users')      cargarAdminUsers();
+  if (tab === 'directorio') cargarAdminDir();
+}
+
+async function cargarAdminPubs() {
+  const wrap = document.getElementById('pubs-wrap');
+  wrap.innerHTML = `<div class="spinner-feed"><span></span><span></span><span></span></div>`;
+  try {
+    const pubs = await api('/api/publicaciones/admin/lista');
+    wrap.innerHTML = `
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>⭐</th><th>#</th><th>Autor</th><th>Contenido</th><th>❤️</th><th>💬</th><th>Fecha</th><th></th></tr></thead>
+          <tbody>
+            ${pubs.map(p => `
+              <tr id="row-pub-${p.id}">
+                <td><span id="dest-star-${p.id}" style="opacity:${p.likes >= 0 ? '0.3' : '1'}">⭐</span></td>
+                <td>${p.id}</td>
+                <td>
+                  <a href="/usuario/${p.telefono}" class="admin-link">${escapeHtml(p.autor || p.telefono)}</a>
+                </td>
+                <td class="admin-td-content">
+                  <a href="/publicacion/${p.id}" class="admin-link">${escapeHtml(p.contenido)}</a>
+                </td>
+                <td>${p.likes}</td>
+                <td>${p.comentarios}</td>
+                <td>${timeAgo(p.fecha)}</td>
+                <td>
+                  <button class="admin-btn-dest ${p.likes > 0 ? '' : ''}"
+                    id="dest-btn-${p.id}"
+                    onclick="toggleDestacada(${p.id})"
+                    title="Destacar publicación">⭐</button>
+                  <button class="admin-btn-del" onclick="eliminarPubAdmin(${p.id})" title="Eliminar">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
+                      <path d="M10 11v6M14 11v6M9 6V4h6v2"/>
+                    </svg>
+                  </button>
+                </td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  } catch(e) {
+    wrap.innerHTML = `<div class="empty"><p>${e.message}</p></div>`;
+  }
+}
+
+async function cargarAdminUsers() {
+  const wrap = document.getElementById('users-wrap');
+  wrap.innerHTML = `<div class="spinner-feed"><span></span><span></span><span></span></div>`;
+  try {
+    const users = await api('/api/auth/admin/usuarios');
+    wrap.innerHTML = `
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>#</th><th>Teléfono</th><th>Nombre</th><th>Localidad</th><th>Pubs</th><th>Rol</th><th>Acciones</th></tr></thead>
+          <tbody>
+            ${users.map(u => `
+              <tr id="row-user-${u.id}">
+                <td>${u.id}</td>
+                <td><a href="/usuario/${u.telefono}" class="admin-link">${u.telefono}</a></td>
+                <td>${escapeHtml(u.nombre || '—')}</td>
+                <td>${escapeHtml(u.localidad || '—')}</td>
+                <td>${u.total_pubs}</td>
+                <td>
+                  <span class="admin-rol-badge ${u.rol === 'admin' ? 'admin' : ''}">${u.rol || 'usuario'}</span>
+                </td>
+                <td class="admin-actions-cell">
+                  <button class="admin-btn-rol" onclick="toggleRol('${u.telefono}', '${u.rol}')"
+                    title="${u.rol === 'admin' ? 'Quitar admin' : 'Hacer admin'}">
+                    ${u.rol === 'admin' ? '👑 Quitar' : '👑 Admin'}
+                  </button>
+                  <button class="admin-btn-del" onclick="banearUser('${u.telefono}')" title="Banear">
+                    🚫
+                  </button>
+                </td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  } catch(e) {
+    wrap.innerHTML = `<div class="empty"><p>${e.message}</p></div>`;
+  }
+}
+
+async function toggleDestacada(id) {
+  // Checar si ya está destacada revisando la estrella
+  const star   = document.getElementById(`dest-star-${id}`);
+  const activa = star && star.style.opacity === '1';
+  try {
+    await api(`/api/publicaciones/${id}/destacar`, 'POST', { destacada: !activa });
+    // Apagar todas las estrellas
+    document.querySelectorAll('[id^="dest-star-"]').forEach(s => {
+      s.style.opacity = '0.3';
+      s.title = '';
+    });
+    if (!activa) {
+      star.style.opacity = '1';
+      star.title = 'Destacada';
+    }
+    toast(activa ? '⭐ Destacado quitado' : '⭐ ¡Publicación destacada!');
+  } catch(e) { toast(e.message); }
+}
+
+async function eliminarPubAdmin(id) {
+  if (!confirm('¿Eliminar esta publicación?')) return;
+  try {
+    await api(`/api/publicaciones/${id}`, 'DELETE');
+    document.getElementById(`row-pub-${id}`)?.remove();
+    toast('🗑 Publicación eliminada');
+  } catch(e) { toast(e.message); }
+}
+
+async function toggleRol(telefono, rolActual) {
+  const nuevo = rolActual === 'admin' ? 'usuario' : 'admin';
+  if (!confirm(`¿Cambiar rol a ${nuevo}?`)) return;
+  try {
+    await api('/api/auth/admin/rol', 'POST', { telefono, rol: nuevo });
+    toast(`✅ Rol cambiado a ${nuevo}`);
+    cargarAdminUsers();
+  } catch(e) { toast(e.message); }
+}
+
+async function banearUser(telefono) {
+  if (!confirm(`¿Banear al usuario ${telefono}?`)) return;
+  try {
+    await api('/api/auth/admin/banear', 'POST', { telefono, baneado: true });
+    toast('🚫 Usuario baneado');
+    cargarAdminUsers();
+  } catch(e) { toast(e.message); }
+}
+
+document.addEventListener('DOMContentLoaded', cargarAdminPubs);
+
+// ===== DIRECTORIO ADMIN =====
+let dirItems = [];
+
+async function cargarAdminDir() {
+  const wrap = document.getElementById('dir-admin-wrap');
+  wrap.innerHTML = `<div class="spinner-feed"><span></span><span></span><span></span></div>`;
+  try {
+    const grupos = await api('/api/directorio');
+    dirItems = Object.values(grupos).flat();
+
+    // Llenar datalist de categorías
+    const cats = [...new Set(Object.keys(grupos))];
+    document.getElementById('cats-list').innerHTML = cats.map(c => `<option value="${c}">`).join('');
+
+    if (!dirItems.length) {
+      wrap.innerHTML = `<p style="color:var(--muted);font-size:.85rem;padding:.5rem 0">Sin entradas aún.</p>`;
+      return;
+    }
+
+    wrap.innerHTML = `
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>Ico</th><th>Categoría</th><th>Nombre</th><th>Teléfono</th><th>Horario</th><th></th></tr></thead>
+          <tbody>
+            ${dirItems.map(item => `
+              <tr id="dir-row-${item.id}">
+                <td>${item.icono}</td>
+                <td>${escapeHtml(item.categoria)}</td>
+                <td>${escapeHtml(item.nombre)}</td>
+                <td>${escapeHtml(item.telefono || '—')}</td>
+                <td>${escapeHtml(item.horario  || '—')}</td>
+                <td class="admin-actions-cell">
+                  <button class="admin-btn-rol" onclick="editarDir(${item.id})">✏️</button>
+                  <button class="admin-btn-del" onclick="eliminarDir(${item.id})">🗑</button>
+                </td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  } catch(e) {
+    wrap.innerHTML = `<p style="color:var(--error)">${e.message}</p>`;
+  }
+}
+
+async function guardarDir() {
+  const editId  = document.getElementById('df-edit-id').value;
+  const payload = {
+    icono:     document.getElementById('df-icono').value.trim()   || '📍',
+    categoria: document.getElementById('df-cat').value.trim(),
+    nombre:    document.getElementById('df-nombre').value.trim(),
+    telefono:  document.getElementById('df-tel').value.trim(),
+    horario:   document.getElementById('df-horario').value.trim(),
+    direccion: document.getElementById('df-dir').value.trim(),
+    orden:     0
+  };
+  if (!payload.categoria || !payload.nombre) { toast('⚠️ Categoría y nombre son obligatorios'); return; }
+
+  try {
+    if (editId) {
+      await api(`/api/directorio/${editId}`, 'PUT', payload);
+      toast('✅ Actualizado');
+    } else {
+      await api('/api/directorio', 'POST', payload);
+      toast('✅ Agregado');
+    }
+    limpiarFormDir();
+    cargarAdminDir();
+  } catch(e) { toast(e.message); }
+}
+
+function editarDir(id) {
+  const item = dirItems.find(i => i.id === id);
+  if (!item) return;
+  document.getElementById('df-icono').value   = item.icono    || '📍';
+  document.getElementById('df-cat').value     = item.categoria;
+  document.getElementById('df-nombre').value  = item.nombre;
+  document.getElementById('df-tel').value     = item.telefono || '';
+  document.getElementById('df-horario').value = item.horario  || '';
+  document.getElementById('df-dir').value     = item.direccion|| '';
+  document.getElementById('df-edit-id').value = id;
+  document.getElementById('df-btn-txt').textContent = '💾 Guardar cambios';
+  document.getElementById('dir-form').scrollIntoView({ behavior: 'smooth' });
+}
+
+function limpiarFormDir() {
+  ['df-icono','df-cat','df-nombre','df-tel','df-horario','df-dir'].forEach(id => {
+    document.getElementById(id).value = id === 'df-icono' ? '📍' : '';
+  });
+  document.getElementById('df-edit-id').value = '';
+  document.getElementById('df-btn-txt').textContent = '➕ Agregar';
+}
+
+async function eliminarDir(id) {
+  if (!confirm('¿Eliminar esta entrada?')) return;
+  try {
+    await api(`/api/directorio/${id}`, 'DELETE');
+    document.getElementById(`dir-row-${id}`)?.remove();
+    dirItems = dirItems.filter(i => i.id !== id);
+    toast('🗑 Eliminado');
+  } catch(e) { toast(e.message); }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- Botón flotante nueva publicación -->
+<button class="fab" onclick="abrirModal()" title="Nueva publicación">
+  <svg width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+  </svg>
+</button>
+
+<!-- Botones de secciones -->
+<div class="secciones-btns">
+  <a href="/servicios" class="seccion-btn seccion-servicios">
+    <span class="seccion-ico">🔧</span>
+    <div class="seccion-info">
+      <span class="seccion-titulo">Servicios</span>
+      <span class="seccion-sub">Plomero, electricista y más</span>
+    </div>
+    <svg class="seccion-arrow" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <polyline points="9 18 15 12 9 6"/>
+    </svg>
+  </a>
+
+  <a href="/emergencias" class="seccion-btn seccion-emergencias">
+    <span class="seccion-ico">🚨</span>
+    <div class="seccion-info">
+      <span class="seccion-titulo">Emergencias y Comercios</span>
+      <span class="seccion-sub">Info esencial del pueblo</span>
+    </div>
+    <svg class="seccion-arrow" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <polyline points="9 18 15 12 9 6"/>
+    </svg>
+  </a>
+</div>
+
+<!-- Feed -->
+<div id="feed" class="feed"></div>
+
+<!-- Modal nueva publicación -->
+<div class="modal-overlay" id="modal-overlay" onclick="cerrarModal(event)">
+  <div class="modal" id="modal-pub">
+    <div class="modal-header">
+      <h3>Nueva publicación</h3>
+      <button class="modal-close" onclick="cerrarModal()">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="modal-limit" id="modal-limit-ind"></div>
+    <textarea id="nuevo-contenido" placeholder="¿Qué estás vendiendo? Describe tu producto..."></textarea>
+    <div class="precio-input-wrap">
+      <span class="precio-simbolo">$</span>
+      <input id="nuevo-precio" type="number" min="0" step="0.01" placeholder="Precio (opcional)" />
+    </div>
+    <div class="modal-imgs" id="preview-imgs"></div>
+    <div class="modal-footer">
+      <div style="display:flex;gap:.5rem">
+        <label class="btn-icon" title="Agregar fotos">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+            <rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/>
+            <path d="M21 15l-5-5L5 21"/>
+          </svg>
+          <input type="file" id="nuevo-imgs" accept="image/*" multiple style="display:none"
+                 onchange="previewMedia(this, 'imagen')"/>
+        </label>
+        <label class="btn-icon" title="Agregar video">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+            <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>
+          </svg>
+          <input type="file" id="nuevo-vid" accept="video/mp4,video/mov,video/webm,video/*" style="display:none"
+                 onchange="previewMedia(this, 'video')"/>
+        </label>
+      </div>
+      <button class="btn-pub" id="btn-pub" onclick="publicar()">
+        <span class="btn-text">Publicar</span>
+        <div class="spinner-btn"></div>
+      </button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
