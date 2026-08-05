@@ -1,6 +1,8 @@
 /* ===== Utilidades ===== */
 const $ = id => document.getElementById(id);
 
+let SESION_ACTIVA = false; // Se actualiza al cargar
+
 function toast(msg, ms = 2800) {
   const el = $('toast');
   if (!el) return;
@@ -37,15 +39,45 @@ function timeAgo(fechaStr) {
   return new Date(fechaStr).toLocaleDateString('es-MX', { day:'2-digit', month:'short' });
 }
 
+/* ===== Modal login requerido ===== */
+function pedirLogin() {
+  const overlay = $('modal-login-req');
+  if (overlay) overlay.classList.add('open');
+}
+
+function cerrarModalLogin(e) {
+  if (e && e.target !== $('modal-login-req')) return;
+  $('modal-login-req')?.classList.remove('open');
+}
+
+/* ===== Verificar sesión ===== */
+async function verificarSesion() {
+  try {
+    await api('/api/auth/yo');
+    SESION_ACTIVA = true;
+    // Mostrar fab de publicar, ocultar fab de login
+    $('fab-pub')  && ($('fab-pub').style.display   = 'flex');
+    $('fab-login') && ($('fab-login').style.display = 'none');
+    $('visitor-banner') && ($('visitor-banner').style.display = 'none');
+    // Mostrar links de perfil/mensajes/notifs en navbar
+    actualizarBadge();
+    setInterval(actualizarBadge, 30000);
+  } catch (_) {
+    SESION_ACTIVA = false;
+    // Mostrar fab de login, ocultar fab de publicar
+    $('fab-pub')   && ($('fab-pub').style.display  = 'none');
+    $('fab-login') && ($('fab-login').style.display = 'flex');
+    $('visitor-banner') && ($('visitor-banner').style.display = 'flex');
+    // Ocultar links que requieren sesión en navbar
+    document.querySelectorAll('.nav-auth').forEach(el => el.style.display = 'none');
+  }
+}
+
 /* ===== Feed ===== */
 async function cargarPublicaciones() {
   const feed = $('feed');
   if (!feed) return;
-
-  feed.innerHTML = `<div class="spinner-feed">
-    <span></span><span></span><span></span>
-  </div>`;
-
+  feed.innerHTML = `<div class="spinner-feed"><span></span><span></span><span></span></div>`;
   try {
     const pubs = await api('/api/publicaciones?limite=30');
     if (!pubs.length) {
@@ -68,14 +100,12 @@ async function cargarPublicaciones() {
 }
 
 function renderPub(p) {
-  // Imágenes y videos
   const imgs = p.imagenes || [];
   const vids = p.videos   || [];
   let imgsHtml = '';
   if (vids.length) {
     imgsHtml = `<div class="card-video-wrap">
-      <video src="/static/${vids[0]}" controls playsinline preload="metadata"
-             class="card-video"></video>
+      <video src="/static/${vids[0]}" controls playsinline preload="metadata" class="card-video"></video>
     </div>`;
   } else if (imgs.length) {
     const cls = `n${Math.min(imgs.length, 3)}`;
@@ -86,20 +116,19 @@ function renderPub(p) {
     </div>`;
   }
 
-  // Avatar
   const avatarHtml = p.autor_foto
     ? `<img src="/static/${p.autor_foto}" class="avatar" />`
     : `<div class="avatar">👤</div>`;
 
   return `
-    <div class="card" id="pub-${p.id}">
+    <div class="card ${p.destacada ? 'card-destacada' : ''}" id="pub-${p.id}">
       <div class="card-header">
         ${avatarHtml}
         <div class="card-meta">
           <div class="card-autor">${escapeHtml(p.autor || p.telefono)}</div>
           <div class="card-fecha">
-              ${p.comunidad ? `<span class="card-comunidad">📍 ${escapeHtml(p.comunidad)}</span> · ` : ''}${timeAgo(p.fecha)}
-            </div>
+            ${p.comunidad ? `<span class="card-comunidad">📍 ${escapeHtml(p.comunidad)}</span> · ` : ''}${timeAgo(p.fecha)}
+          </div>
         </div>
         ${p.destacada ? '<span class="badge-destacada">⭐ Destacado</span>' : ''}
         <span class="card-badge">🏷 Venta</span>
@@ -134,9 +163,9 @@ function renderPub(p) {
 
 /* ===== Modal nueva publicación ===== */
 async function abrirModal() {
+  if (!SESION_ACTIVA) { pedirLogin(); return; }
   $('modal-overlay').classList.add('open');
   setTimeout(() => $('nuevo-contenido')?.focus(), 300);
-  // Mostrar publicaciones disponibles hoy
   try {
     const data = await api('/api/auth/puntos');
     const restantes = 2 - data.pubs_hoy;
@@ -156,7 +185,7 @@ function cerrarModal(e) {
   $('nuevo-contenido').value = '';
   $('preview-imgs').innerHTML = '';
   $('nuevo-imgs').value = '';
-  if ($('nuevo-vid')) $('nuevo-vid').value = '';
+  if ($('nuevo-vid'))    $('nuevo-vid').value = '';
   if ($('nuevo-precio')) $('nuevo-precio').value = '';
 }
 
@@ -166,11 +195,10 @@ function previewMedia(input, tipo) {
     wrap.innerHTML = '';
     const file = input.files[0];
     if (!file) return;
-    const MAX_VID = 100 * 1024 * 1024; // 100 MB
+    const MAX_VID = 100 * 1024 * 1024;
     if (file.size > MAX_VID) {
       toast(`⚠️ El video supera el límite de 100 MB (pesa ${(file.size/1024/1024).toFixed(1)} MB)`);
-      input.value = '';
-      return;
+      input.value = ''; return;
     }
     const url = URL.createObjectURL(file);
     const vid = document.createElement('video');
@@ -179,12 +207,11 @@ function previewMedia(input, tipo) {
     wrap.appendChild(vid);
   } else {
     wrap.innerHTML = '';
-    const MAX_IMG = 10 * 1024 * 1024; // 10 MB por imagen
+    const MAX_IMG = 10 * 1024 * 1024;
     Array.from(input.files).slice(0, 4).forEach(file => {
       if (file.size > MAX_IMG) {
         toast(`⚠️ "${file.name}" supera el límite de 10 MB`);
-        input.value = '';
-        return;
+        input.value = ''; return;
       }
       const reader = new FileReader();
       reader.onload = e => {
@@ -198,27 +225,23 @@ function previewMedia(input, tipo) {
 }
 
 async function publicar() {
+  if (!SESION_ACTIVA) { pedirLogin(); return; }
   const textarea  = $('nuevo-contenido');
   const contenido = textarea?.value.trim();
   if (!contenido) { toast('✏️ Escribe algo primero'); return; }
 
   const btn = $('btn-pub');
-  btn.classList.add('loading');
-  btn.disabled = true;
+  btn.classList.add('loading'); btn.disabled = true;
 
-  const precio = document.getElementById('nuevo-precio')?.value.trim();
+  const precio   = $('nuevo-precio')?.value.trim();
   const formData = new FormData();
   formData.append('contenido', contenido);
   if (precio) formData.append('precio', precio);
 
   const imgs = $('nuevo-imgs');
-  if (imgs?.files.length) {
-    Array.from(imgs.files).forEach(f => formData.append('imagenes', f));
-  }
+  if (imgs?.files.length) Array.from(imgs.files).forEach(f => formData.append('imagenes', f));
   const vid = $('nuevo-vid');
-  if (vid?.files.length) {
-    formData.append('videos', vid.files[0]);
-  }
+  if (vid?.files.length) formData.append('videos', vid.files[0]);
 
   try {
     await fetch('/api/publicaciones', { method: 'POST', body: formData, credentials: 'include' });
@@ -228,13 +251,13 @@ async function publicar() {
   } catch (e) {
     toast('Error: ' + e.message);
   } finally {
-    btn.classList.remove('loading');
-    btn.disabled = false;
+    btn.classList.remove('loading'); btn.disabled = false;
   }
 }
 
 /* ===== Likes ===== */
 async function reaccionar(pubId) {
+  if (!SESION_ACTIVA) { pedirLogin(); return; }
   try {
     const res = await api('/api/likes', 'POST', { publicacion_id: pubId, reaccion: 'like' });
     const el  = $(`likes-${pubId}`);
@@ -245,10 +268,7 @@ async function reaccionar(pubId) {
     }
     btn?.classList.toggle('liked', res.accion !== 'quitado');
   } catch (e) {
-    if (e.message.includes('autenticado')) {
-      toast('Inicia sesión para reaccionar');
-      setTimeout(() => location.href = '/login', 1200);
-    } else toast(e.message);
+    toast(e.message);
   }
 }
 
@@ -266,20 +286,30 @@ async function cargarComentarios(pubId) {
   try {
     const coms = await api(`/api/comentarios/${pubId}`);
     box.dataset.loaded = '1';
+
+    const inputHtml = SESION_ACTIVA
+      ? `<div class="com-input-row">
+           <input id="com-input-${pubId}" type="text" placeholder="Escribe un comentario..."
+                  onkeydown="if(event.key==='Enter') enviarComentario(${pubId})"/>
+           <button class="com-send" onclick="enviarComentario(${pubId})">Enviar</button>
+         </div>`
+      : `<button class="com-login-btn" onclick="pedirLogin()">
+           Inicia sesión para comentar
+         </button>`;
+
     box.innerHTML = `
-      ${coms.length ? coms.map(c => `
-        <div class="comentario-item">
-          <div class="com-avatar">👤</div>
-          <div class="com-body">
-            <div class="com-autor">${escapeHtml(c.autor || c.telefono)}</div>
-            <div class="com-texto">${escapeHtml(c.comentario)}</div>
-            <div class="com-fecha">${timeAgo(c.fecha)}</div>
-          </div>
-        </div>`).join('') : '<p style="color:var(--muted);font-size:.82rem;margin-bottom:.5rem">Sin comentarios aún</p>'}
-      <div class="com-input-row">
-        <input id="com-input-${pubId}" type="text" placeholder="Escribe un comentario..."
-               onkeydown="if(event.key==='Enter') enviarComentario(${pubId})"/>
-        <button class="com-send" onclick="enviarComentario(${pubId})">Enviar</button>
+      <div style="padding:.75rem 0;border-top:1px solid #f1f5f9">
+        ${coms.length ? coms.map(c => `
+          <div class="comentario-item">
+            <div class="com-avatar">👤</div>
+            <div class="com-body">
+              <div class="com-autor">${escapeHtml(c.autor || c.telefono)}</div>
+              <div class="com-texto">${escapeHtml(c.comentario)}</div>
+              <div class="com-fecha">${timeAgo(c.fecha)}</div>
+            </div>
+          </div>`).join('')
+          : '<p style="color:var(--muted);font-size:.82rem;margin-bottom:.5rem">Sin comentarios aún</p>'}
+        ${inputHtml}
       </div>`;
   } catch(e) {
     box.innerHTML = `<p style="color:var(--error);font-size:.82rem">${e.message}</p>`;
@@ -287,6 +317,7 @@ async function cargarComentarios(pubId) {
 }
 
 async function enviarComentario(pubId) {
+  if (!SESION_ACTIVA) { pedirLogin(); return; }
   const input = $(`com-input-${pubId}`);
   const texto = input?.value.trim();
   if (!texto) return;
@@ -296,39 +327,34 @@ async function enviarComentario(pubId) {
     const box = $(`coms-${pubId}`);
     delete box.dataset.loaded;
     await cargarComentarios(pubId);
-    // Actualizar contador
     const cnt = $(`coms-count-${pubId}`);
     if (cnt) cnt.textContent = parseInt(cnt.textContent || 0) + 1;
   } catch(e) {
-    toast(e.message.includes('autenticado') ? 'Inicia sesión para comentar' : e.message);
+    toast(e.message);
   } finally {
     input.disabled = false;
-    input.focus();
+    input?.focus();
   }
+}
+
+/* ===== WhatsApp ===== */
+function contactarWA(telefono, pubId, descripcion) {
+  let tel = telefono.replace(/[\s\-\(\)]/g, '');
+  if (tel.startsWith('0')) tel = '52' + tel.slice(1);
+  else if (!tel.startsWith('52') && tel.length === 10) tel = '52' + tel;
+  const url = location.origin + '/publicacion/' + pubId;
+  const msg = encodeURIComponent(`Hola! Vi tu publicación en Ventas Locales José Azueta:\n*${descripcion}*\n${url}\n\n¿Sigue disponible?`);
+  window.open(`https://wa.me/${tel}?text=${msg}`, '_blank');
 }
 
 /* ===== Compartir ===== */
 function compartir(pubId) {
   const url = `${location.origin}/publicacion/${pubId}`;
   if (navigator.share) {
-    navigator.share({ title: 'Comercio Local', url });
+    navigator.share({ title: 'Ventas Locales José Azueta', url });
   } else {
     navigator.clipboard.writeText(url).then(() => toast('🔗 Enlace copiado'));
   }
-}
-
-/* ===== WhatsApp ===== */
-function contactarWA(telefono, pubId, descripcion) {
-  // Limpiar teléfono: quitar espacios y guiones, agregar código de país si falta
-  let tel = telefono.replace(/[\s\-\(\)]/g, '');
-  if (tel.startsWith('0')) tel = '52' + tel.slice(1);
-  else if (!tel.startsWith('52') && tel.length === 10) tel = '52' + tel;
-
-  const url = location.origin + '/publicacion/' + pubId;
-  const msg = encodeURIComponent(
-    `Hola! Vi tu publicación en Comercio Local:\n*${descripcion}*\n${url}\n\n¿Sigue disponible?`
-  );
-  window.open(`https://wa.me/${tel}?text=${msg}`, '_blank');
 }
 
 /* ===== Lightbox ===== */
@@ -344,11 +370,16 @@ function verImagen(src) {
   lb.onclick = e => { if (e.target === lb) lb.remove(); };
   document.body.appendChild(lb);
 }
-// Alias global para usarse desde templates
 window.abrirLightbox = verImagen;
+
+document.addEventListener('click', e => {
+  const img = e.target.closest('.img-lightbox');
+  if (img) verImagen(img.dataset.src || img.src);
+});
 
 /* ===== Badge notificaciones ===== */
 async function actualizarBadge() {
+  if (!SESION_ACTIVA) return;
   try {
     const data  = await api('/api/notificaciones/no-leidas');
     const badge = $('notif-count');
@@ -363,19 +394,16 @@ async function actualizarBadge() {
   } catch (_) {}
 }
 
-/* ===== Cerrar modal con Escape ===== */
+/* ===== Escape key ===== */
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') $('modal-overlay')?.classList.remove('open');
+  if (e.key === 'Escape') {
+    $('modal-overlay')?.classList.remove('open');
+    $('modal-login-req')?.classList.remove('open');
+  }
 });
 
 /* ===== Init ===== */
-document.addEventListener('click', e => {
-  const img = e.target.closest('.img-lightbox');
-  if (img) verImagen(img.dataset.src || img.src);
-});
-
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  await verificarSesion();
   cargarPublicaciones();
-  actualizarBadge();
-  setInterval(actualizarBadge, 30000);
 });

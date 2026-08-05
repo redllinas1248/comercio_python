@@ -15,12 +15,12 @@
 </head>
 <body>
 
-  <!-- ===== BANNER SUPERIOR ===== -->
+  <!-- Banner -->
   <div class="site-banner">
     <img src="/static/img/banner.svg" alt="Ventas Locales José Azueta" class="banner-img"/>
   </div>
 
-  <!-- ===== NAVBAR ===== -->
+  <!-- Navbar -->
   <nav class="navbar">
     <a href="/" class="brand">
       <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
@@ -34,20 +34,29 @@
           <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
         </svg>
       </a>
-      <a href="/mensajes" class="nav-link" title="Mensajes">
+      <!-- Estos solo se muestran con sesión -->
+      <a href="/mensajes" class="nav-link nav-auth" title="Mensajes">
         <svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
           <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
         </svg>
       </a>
-      <a href="/notificaciones" class="nav-link nav-notif" id="badge-notif" title="Notificaciones">
+      <a href="/notificaciones" class="nav-link nav-auth nav-notif" id="badge-notif" title="Notificaciones">
         <svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
           <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>
         </svg>
         <span class="notif-badge" id="notif-count" style="display:none"></span>
       </a>
-      <a href="/perfil" class="nav-link" title="Perfil">
+      <a href="/perfil" class="nav-link nav-auth" title="Perfil">
         <svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
           <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+        </svg>
+      </a>
+      <!-- Botón login para visitantes -->
+      <a href="/login" class="nav-link nav-guest nav-login-btn" title="Iniciar sesión">
+        <svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/>
+          <polyline points="10 17 15 12 10 7"/>
+          <line x1="15" y1="12" x2="3" y2="12"/>
         </svg>
       </a>
     </div>
@@ -61,6 +70,9 @@
 
   <script src="/static/js/app.js"></script>
   <script>
+    // Ocultar links de sesión por defecto, app.js los muestra si hay sesión
+    document.querySelectorAll('.nav-auth').forEach(el => el.style.display = 'none');
+
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/static/sw.js')
         .then(() => console.log('SW ok'))
