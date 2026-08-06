@@ -9,21 +9,15 @@ auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 def registro():
     """Registrar nuevo usuario con teléfono y PIN."""
     data = request.get_json()
-    import html as html_lib, re as re_lib
-    telefono = re_lib.sub(r'[^0-9+\-\s]', '', data.get('telefono', '').strip())
+    telefono = data.get('telefono', '').strip()
     pin      = data.get('pin', '').strip()
-    usuario  = html_lib.escape(data.get('usuario', '').strip()) or telefono
-    nombre   = html_lib.escape(data.get('nombre', '').strip())
+    usuario  = data.get('usuario', '').strip() or telefono
+    nombre   = data.get('nombre', '').strip()
 
     if not telefono or not pin:
         return jsonify({'error': 'Teléfono y PIN son obligatorios'}), 400
     if len(pin) != 4 or not pin.isdigit():
         return jsonify({'error': 'El PIN debe ser de 4 dígitos'}), 400
-    # Validar longitud máxima
-    if len(nombre) > 100:
-        return jsonify({'error': 'Nombre demasiado largo'}), 400
-    if len(telefono) > 20:
-        return jsonify({'error': 'Teléfono inválido'}), 400
 
     db = get_db()
     cur = db.connection.cursor()
@@ -46,7 +40,8 @@ def registro():
     nuevo_id = cur.lastrowid
     cur.close()
 
-    session['telefono'] = telefono
+    session.permanent    = True
+    session['telefono']   = telefono
     session['usuario_id'] = nuevo_id
     return jsonify({'mensaje': 'Registro exitoso', 'id': nuevo_id}), 201
 
@@ -55,14 +50,11 @@ def registro():
 def login():
     """Iniciar sesión con teléfono y PIN."""
     data = request.get_json()
-    import re as re_lib
-    telefono = re_lib.sub(r'[^0-9+\-\s]', '', data.get('telefono', '').strip())
+    telefono = data.get('telefono', '').strip()
     pin      = data.get('pin', '').strip()
 
     if not telefono or not pin:
         return jsonify({'error': 'Teléfono y PIN son obligatorios'}), 400
-    if len(pin) != 4 or not pin.isdigit():
-        return jsonify({'error': 'PIN inválido'}), 400
 
     db = get_db()
     cur = db.connection.cursor()
@@ -81,6 +73,7 @@ def login():
     if not bcrypt.checkpw(pin.encode(), pin_hash.encode()):
         return jsonify({'error': 'PIN incorrecto'}), 401
 
+    session.permanent    = True
     session['telefono']   = telefono
     session['usuario_id'] = _id
     session['rol']        = rol
@@ -105,17 +98,9 @@ def actualizar_perfil():
 
     data      = request.get_json()
     telefono  = session['telefono']
-    import html as html_lib
     campos    = ['nombre', 'apellido', 'localidad', 'correo', 'tipo',
                  'mostrar_telefono', 'mostrar_correo']
-    campos_texto = {'nombre', 'apellido', 'localidad', 'correo'}
-    updates = {}
-    for k in campos:
-        if k in data:
-            val = data[k]
-            if k in campos_texto and isinstance(val, str):
-                val = html_lib.escape(val.strip())
-            updates[k] = val
+    updates   = {k: data[k] for k in campos if k in data}
 
     if not updates:
         return jsonify({'error': 'Nada que actualizar'}), 400
@@ -166,22 +151,20 @@ def subir_foto():
     if 'foto' not in request.files:
         return jsonify({'error': 'No se envió ninguna imagen'}), 400
 
+    import os, time
+    from werkzeug.utils import secure_filename
+
     foto = request.files['foto']
     ext  = foto.filename.rsplit('.', 1)[-1].lower()
     if ext not in {'png','jpg','jpeg','gif','webp'}:
         return jsonify({'error': 'Formato no permitido'}), 400
 
-    try:
-        import cloudinary.uploader
-        resultado = cloudinary.uploader.upload(
-            foto,
-            folder='comercio/perfiles',
-            resource_type='image'
-        )
-        ruta = resultado['secure_url']
-    except Exception as e:
-        return jsonify({'error': f'Error subiendo imagen: {str(e)}'}), 500
+    nombre_archivo = f"perfil_{session['telefono']}_{int(time.time())}.{ext}"
+    carpeta = os.path.join('static', 'img', 'perfiles')
+    os.makedirs(carpeta, exist_ok=True)
+    foto.save(os.path.join(carpeta, nombre_archivo))
 
+    ruta = f"img/perfiles/{nombre_archivo}"
     db  = get_db()
     cur = db.connection.cursor()
     cur.execute("UPDATE usuarios SET foto = %s WHERE telefono = %s",

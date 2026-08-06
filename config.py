@@ -8,7 +8,13 @@ class Config:
     MYSQL_DB       = os.environ.get('MYSQL_DB',       'sql3834541')
     MYSQL_PORT     = int(os.environ.get('MYSQL_PORT', 3306))
 
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'comercio-azueta-2026-seguro')
+    SECRET_KEY = os.environ.get('SECRET_KEY', 'comercio-azueta-2026-seguro-xK9m')
+
+    # Configuración de sesión para producción HTTPS
+    SESSION_COOKIE_SECURE   = True   # Solo enviar cookie por HTTPS
+    SESSION_COOKIE_HTTPONLY = True   # No accesible por JS
+    SESSION_COOKIE_SAMESITE = 'Lax' # Permite redirecciones normales
+    PERMANENT_SESSION_LIFETIME = 60 * 60 * 24 * 30  # 30 días
 
     UPLOAD_FOLDER      = os.path.join('static', 'img', 'posts')
     VIDEO_FOLDER       = os.path.join('static', 'videos', 'posts')
