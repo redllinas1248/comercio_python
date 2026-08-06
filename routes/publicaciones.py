@@ -6,29 +6,29 @@ from db import get_db
 pub_bp = Blueprint('publicaciones', __name__, url_prefix='/api/publicaciones')
 
 
-def allowed_file(filename):
-    exts = current_app.config.get('ALLOWED_EXTENSIONS', {'png','jpg','jpeg','gif','webp'})
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in exts
-
-def allowed_video(filename):
-    exts = current_app.config.get('ALLOWED_VIDEO_EXTS', {'mp4','mov','webm','avi'})
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in exts
+def subir_cloudinary(archivo, carpeta='posts'):
+    """Sube un archivo a Cloudinary y devuelve la URL segura."""
+    import cloudinary.uploader
+    resultado = cloudinary.uploader.upload(
+        archivo,
+        folder=f"comercio/{carpeta}",
+        resource_type="auto"
+    )
+    return resultado['secure_url']
 
 
 @pub_bp.route('', methods=['GET'])
 def listar():
-    """Lista publicaciones con filtro opcional por categoría."""
-    categoria_id = request.args.get('categoria_id')
+    categoria_id    = request.args.get('categoria_id')
     telefono_filtro = request.args.get('telefono')
     limite = int(request.args.get('limite', 20))
     offset = int(request.args.get('offset', 0))
 
-    db = get_db()
+    db  = get_db()
     cur = db.connection.cursor()
 
     condiciones = []
-    params = []
-
+    params      = []
     if categoria_id:
         condiciones.append("p.categoria_id = %s")
         params.append(categoria_id)
@@ -56,18 +56,16 @@ def listar():
     rows = cur.fetchall()
     keys = ['id','telefono','contenido','fecha','categoria_id','categoria',
             'autor','autor_foto','tel_autor','comunidad','precio','destacada','total_likes','total_comentarios']
-    publicaciones = [dict(zip(keys, r)) for r in rows]
-
-    # Adjuntar imágenes a cada publicación
-    for pub in publicaciones:
-        cur.execute(
-            "SELECT ruta FROM publicaciones_imagenes WHERE publicacion_id = %s",
-            (pub['id'],)
-        )
-        pub['imagenes'] = [row[0] for row in cur.fetchall()]
-        cur.execute("SELECT ruta FROM publicaciones_videos WHERE publicacion_id = %s", (pub['id'],))
-        pub['videos'] = [row[0] for row in cur.fetchall()]
+    publicaciones = []
+    for row in rows:
+        pub = dict(zip(keys, row))
         pub['fecha'] = str(pub['fecha'])
+        pub['precio'] = str(pub['precio']) if pub['precio'] else None
+        cur.execute("SELECT ruta FROM publicaciones_imagenes WHERE publicacion_id = %s", (pub['id'],))
+        pub['imagenes'] = [r[0] for r in cur.fetchall()]
+        cur.execute("SELECT ruta FROM publicaciones_videos WHERE publicacion_id = %s", (pub['id'],))
+        pub['videos'] = [r[0] for r in cur.fetchall()]
+        publicaciones.append(pub)
 
     cur.close()
     return jsonify(publicaciones)
@@ -75,13 +73,12 @@ def listar():
 
 @pub_bp.route('/<int:pub_id>', methods=['GET'])
 def detalle(pub_id):
-    """Detalle de una publicación."""
-    db = get_db()
+    db  = get_db()
     cur = db.connection.cursor()
     cur.execute("""
         SELECT p.id, p.telefono, p.contenido, p.fecha, p.categoria_id,
                c.nombre AS categoria, u.nombre AS autor, u.foto AS autor_foto,
-               u.telefono AS tel_autor, p.precio
+               u.telefono AS tel_autor, p.precio, u.localidad AS comunidad
         FROM publicaciones p
         LEFT JOIN categorias c ON c.id = p.categoria_id
         LEFT JOIN usuarios u ON u.telefono = p.telefono
@@ -93,8 +90,9 @@ def detalle(pub_id):
         return jsonify({'error': 'No encontrada'}), 404
 
     keys = ['id','telefono','contenido','fecha','categoria_id','categoria','autor','autor_foto','tel_autor','precio','comunidad']
-    pub = dict(zip(keys, row))
-    pub['fecha'] = str(pub['fecha'])
+    pub  = dict(zip(keys, row))
+    pub['fecha']  = str(pub['fecha'])
+    pub['precio'] = str(pub['precio']) if pub['precio'] else None
 
     cur.execute("SELECT ruta FROM publicaciones_imagenes WHERE publicacion_id = %s", (pub_id,))
     pub['imagenes'] = [r[0] for r in cur.fetchall()]
@@ -106,7 +104,6 @@ def detalle(pub_id):
 
 @pub_bp.route('', methods=['POST'])
 def crear():
-    """Crear publicación con texto e imágenes opcionales."""
     if 'telefono' not in session:
         return jsonify({'error': 'No autenticado'}), 401
 
@@ -138,7 +135,7 @@ def crear():
     db.connection.commit()
     pub_id = cur.lastrowid
 
-    # Sistema de puntos: 1 punto por cada 2 publicaciones totales
+    # Sistema de puntos
     cur.execute("SELECT COUNT(*) FROM publicaciones WHERE telefono = %s", (telefono,))
     total_pubs = cur.fetchone()[0]
     if total_pubs % 2 == 0:
@@ -149,33 +146,33 @@ def crear():
         )
         db.connection.commit()
 
-    # Guardar imágenes
-    upload_folder = current_app.config['UPLOAD_FOLDER']
-    os.makedirs(upload_folder, exist_ok=True)
-
+    # Subir imágenes a Cloudinary
     for img in request.files.getlist('imagenes'):
-        if img and img.filename and allowed_file(img.filename):
-            filename = f"{int(time.time())}_{secure_filename(img.filename)}"
-            ruta     = os.path.join('img', 'posts', filename)
-            img.save(os.path.join('static', ruta))
-            cur.execute(
-                "INSERT INTO publicaciones_imagenes (publicacion_id, ruta) VALUES (%s, %s)",
-                (pub_id, ruta)
-            )
+        if img and img.filename:
+            ext = img.filename.rsplit('.', 1)[-1].lower()
+            if ext in {'png','jpg','jpeg','gif','webp'}:
+                try:
+                    url = subir_cloudinary(img, 'imagenes')
+                    cur.execute(
+                        "INSERT INTO publicaciones_imagenes (publicacion_id, ruta) VALUES (%s, %s)",
+                        (pub_id, url)
+                    )
+                except Exception as e:
+                    print(f"Error subiendo imagen: {e}")
 
-    # Guardar videos
-    video_folder = current_app.config['VIDEO_FOLDER']
-    os.makedirs(video_folder, exist_ok=True)
-
+    # Subir video a Cloudinary
     for vid in request.files.getlist('videos'):
-        if vid and vid.filename and allowed_video(vid.filename):
-            filename = f"{int(time.time())}_{secure_filename(vid.filename)}"
-            ruta     = os.path.join('videos', 'posts', filename)
-            vid.save(os.path.join('static', ruta))
-            cur.execute(
-                "INSERT INTO publicaciones_videos (publicacion_id, ruta) VALUES (%s, %s)",
-                (pub_id, ruta)
-            )
+        if vid and vid.filename:
+            ext = vid.filename.rsplit('.', 1)[-1].lower()
+            if ext in {'mp4','mov','webm','avi'}:
+                try:
+                    url = subir_cloudinary(vid, 'videos')
+                    cur.execute(
+                        "INSERT INTO publicaciones_videos (publicacion_id, ruta) VALUES (%s, %s)",
+                        (pub_id, url)
+                    )
+                except Exception as e:
+                    print(f"Error subiendo video: {e}")
 
     db.connection.commit()
     cur.close()
@@ -184,11 +181,10 @@ def crear():
 
 @pub_bp.route('/<int:pub_id>', methods=['DELETE'])
 def eliminar(pub_id):
-    """Eliminar publicación (solo el dueño o admin)."""
     if 'telefono' not in session:
         return jsonify({'error': 'No autenticado'}), 401
 
-    db = get_db()
+    db  = get_db()
     cur = db.connection.cursor()
     cur.execute("SELECT telefono FROM publicaciones WHERE id = %s", (pub_id,))
     row = cur.fetchone()
@@ -196,7 +192,6 @@ def eliminar(pub_id):
     if not row:
         cur.close()
         return jsonify({'error': 'No encontrada'}), 404
-
     if row[0] != session['telefono'] and session.get('rol') != 'admin':
         cur.close()
         return jsonify({'error': 'Sin permiso'}), 403
@@ -209,7 +204,7 @@ def eliminar(pub_id):
 
 @pub_bp.route('/categorias', methods=['GET'])
 def categorias():
-    db = get_db()
+    db  = get_db()
     cur = db.connection.cursor()
     cur.execute("SELECT id, nombre FROM categorias")
     rows = cur.fetchall()
@@ -217,21 +212,17 @@ def categorias():
     return jsonify([{'id': r[0], 'nombre': r[1]} for r in rows])
 
 
-
 @pub_bp.route('/<int:pub_id>/destacar', methods=['POST'])
 def destacar(pub_id):
-    """Admin: marcar/desmarcar como destacada. Solo una a la vez."""
     if session.get('rol') != 'admin':
         return jsonify({'error': 'Sin permiso'}), 403
 
-    data      = request.get_json()
-    activar   = data.get('destacada', True)
+    data   = request.get_json()
+    activar = data.get('destacada', True)
 
     db  = get_db()
     cur = db.connection.cursor()
-
     if activar:
-        # Quitar destacada a todas primero
         cur.execute("UPDATE publicaciones SET destacada = 0")
         cur.execute("UPDATE publicaciones SET destacada = 1 WHERE id = %s", (pub_id,))
     else:
@@ -244,15 +235,14 @@ def destacar(pub_id):
 
 @pub_bp.route('/buscar', methods=['GET'])
 def buscar():
-    """Buscar publicaciones por texto o usuario."""
     q      = request.args.get('q', '').strip()
     limite = int(request.args.get('limite', 20))
     if not q:
         return jsonify([])
 
     like = f"%{q}%"
-    db  = get_db()
-    cur = db.connection.cursor()
+    db   = get_db()
+    cur  = db.connection.cursor()
     cur.execute("""
         SELECT p.id, p.telefono, p.contenido, p.fecha,
                u.nombre AS autor, u.foto AS autor_foto, u.telefono AS tel_autor,
@@ -261,18 +251,16 @@ def buscar():
                (SELECT COUNT(*) FROM comentarios co WHERE co.publicacion_id = p.id) AS total_comentarios
         FROM publicaciones p
         LEFT JOIN usuarios u ON u.telefono = p.telefono
-        WHERE p.contenido LIKE %s
-           OR u.nombre    LIKE %s
-           OR u.telefono  LIKE %s
-        ORDER BY p.fecha DESC
-        LIMIT %s
+        WHERE p.contenido LIKE %s OR u.nombre LIKE %s OR u.telefono LIKE %s
+        ORDER BY p.fecha DESC LIMIT %s
     """, (like, like, like, limite))
-    rows = cur.fetchall()
-    keys = ['id','telefono','contenido','fecha','autor','autor_foto','tel_autor','precio','comunidad','destacada','total_likes','total_comentarios']
+    rows   = cur.fetchall()
+    keys   = ['id','telefono','contenido','fecha','autor','autor_foto','tel_autor','precio','comunidad','destacada','total_likes','total_comentarios']
     result = []
     for row in rows:
         pub = dict(zip(keys, row))
-        pub['fecha'] = str(pub['fecha'])
+        pub['fecha']  = str(pub['fecha'])
+        pub['precio'] = str(pub['precio']) if pub['precio'] else None
         cur.execute("SELECT ruta FROM publicaciones_imagenes WHERE publicacion_id = %s", (pub['id'],))
         pub['imagenes'] = [r[0] for r in cur.fetchall()]
         cur.execute("SELECT ruta FROM publicaciones_videos WHERE publicacion_id = %s", (pub['id'],))
@@ -284,7 +272,6 @@ def buscar():
 
 @pub_bp.route('/admin/lista', methods=['GET'])
 def admin_lista():
-    """Lista todas las publicaciones para el panel admin."""
     if session.get('rol') != 'admin':
         return jsonify({'error': 'Sin permiso'}), 403
     db  = get_db()

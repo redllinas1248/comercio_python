@@ -1,13 +1,13 @@
 from flask import Flask
-from config import Config
+from config import Config, init_cloudinary
 from db import init_db
 
 app = Flask(__name__)
 app.config.from_object(Config)
 
 init_db(app)
+init_cloudinary(app)
 
-# Blueprints API
 from routes.auth import auth_bp
 from routes.publicaciones import pub_bp
 from routes.comentarios import com_bp
@@ -15,8 +15,6 @@ from routes.likes import likes_bp
 from routes.mensajes import msg_bp
 from routes.notificaciones import notif_bp
 from routes.directorio import dir_bp
-
-# Blueprints vistas (páginas HTML)
 from routes.views import views_bp
 
 app.register_blueprint(auth_bp)

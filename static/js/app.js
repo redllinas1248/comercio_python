@@ -21,6 +21,12 @@ async function api(url, method = 'GET', body = null) {
   return data;
 }
 
+function imgUrl(ruta) {
+  // Si es URL completa (Cloudinary) la usa directo, si no agrega /static/
+  if (!ruta) return '';
+  return ruta.startsWith('http') ? ruta : '/static/' + ruta;
+}
+
 function escapeHtml(str) {
   const d = document.createElement('div');
   d.appendChild(document.createTextNode(str || ''));
@@ -60,8 +66,6 @@ async function verificarSesion() {
     $('fab-login') && ($('fab-login').style.display = 'none');
     $('visitor-banner') && ($('visitor-banner').style.display = 'none');
     // Mostrar links de perfil/mensajes/notifs en navbar
-    document.querySelectorAll('.nav-auth').forEach(el => el.style.display = 'flex');
-    document.querySelectorAll('.nav-guest').forEach(el => el.style.display = 'none');
     actualizarBadge();
     setInterval(actualizarBadge, 30000);
   } catch (_) {
@@ -107,19 +111,19 @@ function renderPub(p) {
   let imgsHtml = '';
   if (vids.length) {
     imgsHtml = `<div class="card-video-wrap">
-      <video src="/static/${vids[0]}" controls playsinline preload="metadata" class="card-video"></video>
+      <video src="${imgUrl(vids[0])}" controls playsinline preload="metadata" class="card-video"></video>
     </div>`;
   } else if (imgs.length) {
     const cls = `n${Math.min(imgs.length, 3)}`;
     imgsHtml = `<div class="card-imagenes ${cls}">
       ${imgs.slice(0,3).map(img =>
-        `<img src="/static/${img}" loading="lazy" class="img-lightbox" data-src="/static/${img}" style="cursor:zoom-in" />`
+        `<img src="${imgUrl(img)}" loading="lazy" class="img-lightbox" data-src="${imgUrl(img)}" style="cursor:zoom-in" />`
       ).join('')}
     </div>`;
   }
 
   const avatarHtml = p.autor_foto
-    ? `<img src="/static/${p.autor_foto}" class="avatar" />`
+    ? `<img src="${imgUrl(p.autor_foto)}" class="avatar" />`
     : `<div class="avatar">👤</div>`;
 
   return `
