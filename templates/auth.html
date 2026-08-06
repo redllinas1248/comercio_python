@@ -494,6 +494,10 @@
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error al iniciar sesión');
+        // Guardar sesión en localStorage como respaldo
+        localStorage.setItem('usr_tel', telefono);
+        localStorage.setItem('usr_nombre', data.usuario?.nombre || '');
+        localStorage.setItem('usr_rol', data.usuario?.rol || 'usuario');
         showMsg('login', '¡Bienvenido! Entrando...', 'ok');
         setTimeout(() => location.href = '/', 900);
       } catch(e) {
@@ -538,6 +542,9 @@
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error al registrar');
+        localStorage.setItem('usr_tel', telefono);
+        localStorage.setItem('usr_nombre', nombre);
+        localStorage.setItem('usr_rol', 'usuario');
         showMsg('registro', '✓ Cuenta creada. Entrando...', 'ok');
         setTimeout(() => location.href = '/', 900);
       } catch(e) {

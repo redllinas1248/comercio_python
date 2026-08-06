@@ -12,6 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="/static/css/app.css"/>
+  <script src="/static/js/app.js" defer></script>
 </head>
 <body>
 
@@ -68,11 +69,9 @@
 
   <div id="toast" class="toast hidden"></div>
 
-  <script src="/static/js/app.js"></script>
   <script>
     // Ocultar links de sesión por defecto, app.js los muestra si hay sesión
     document.querySelectorAll('.nav-auth').forEach(el => el.style.display = 'none');
-    // nav-guest visible por defecto, verificarSesion lo oculta si hay sesión
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/static/sw.js')
