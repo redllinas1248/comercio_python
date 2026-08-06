@@ -72,6 +72,7 @@
   <script>
     // Ocultar links de sesión por defecto, app.js los muestra si hay sesión
     document.querySelectorAll('.nav-auth').forEach(el => el.style.display = 'none');
+    // nav-guest visible por defecto, verificarSesion lo oculta si hay sesión
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/static/sw.js')
