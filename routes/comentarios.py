@@ -30,10 +30,17 @@ def crear():
     if 'telefono' not in session:
         return jsonify({'error': 'No autenticado'}), 401
 
+    import html as html_lib
     data         = request.get_json()
     pub_id       = data.get('publicacion_id')
-    comentario   = data.get('comentario', '').strip()
+    comentario   = html_lib.escape(data.get('comentario', '').strip())
     telefono     = session['telefono']
+
+    # Validar que pub_id sea entero
+    try:
+        pub_id = int(pub_id)
+    except (TypeError, ValueError):
+        return jsonify({'error': 'ID inválido'}), 400
 
     if not pub_id or not comentario:
         return jsonify({'error': 'Datos incompletos'}), 400

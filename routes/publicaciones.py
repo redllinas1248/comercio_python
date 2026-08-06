@@ -107,7 +107,8 @@ def crear():
     if 'telefono' not in session:
         return jsonify({'error': 'No autenticado'}), 401
 
-    contenido    = request.form.get('contenido', '').strip()
+    import html
+    contenido    = html.escape(request.form.get('contenido', '').strip())
     categoria_id = request.form.get('categoria_id')
     precio       = request.form.get('precio', '').strip() or None
     telefono     = session['telefono']
