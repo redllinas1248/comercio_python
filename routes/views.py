@@ -11,10 +11,20 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated
 
+def admin_required(f):
+    from functools import wraps
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if 'telefono' not in session:
+            return redirect(url_for('views.login'))
+        if session.get('rol') != 'admin':
+            return redirect(url_for('views.index'))
+        return f(*args, **kwargs)
+    return decorated
+
 
 @views_bp.route('/')
 def index():
-    # Sin login_required — modo lectura para visitantes
     return render_template('index.html')
 
 @views_bp.route('/login')
@@ -51,7 +61,7 @@ def perfil_usuario(telefono):
     return render_template('perfil_usuario.html', telefono=telefono)
 
 @views_bp.route('/admin')
-@login_required
+@admin_required
 def admin():
     return render_template('admin.html')
 
