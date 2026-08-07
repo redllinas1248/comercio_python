@@ -1,19 +1,18 @@
 from flask import Blueprint, request, jsonify, session
 from db import get_db
+import html as html_lib
 
 msg_bp = Blueprint('mensajes', __name__, url_prefix='/api/mensajes')
 
 
 @msg_bp.route('/conversaciones', methods=['GET'])
 def conversaciones():
-    """Lista las conversaciones del usuario en sesión."""
     if 'telefono' not in session:
         return jsonify({'error': 'No autenticado'}), 401
 
     telefono = session['telefono']
     db = get_db()
     cur = db.connection.cursor()
-
     cur.execute("""
         SELECT DISTINCT
             IF(emisor = %s, receptor, emisor) AS contacto,
@@ -28,7 +27,6 @@ def conversaciones():
         FROM mensajes
         WHERE emisor = %s OR receptor = %s
     """, (telefono,)*7)
-
     rows = cur.fetchall()
     cur.close()
 
@@ -44,7 +42,6 @@ def conversaciones():
 
 @msg_bp.route('/<receptor>', methods=['GET'])
 def hilo(receptor):
-    """Mensajes entre el usuario en sesión y el receptor."""
     if 'telefono' not in session:
         return jsonify({'error': 'No autenticado'}), 401
 
@@ -75,7 +72,7 @@ def enviar():
 
     data     = request.get_json()
     receptor = data.get('receptor', '').strip()
-    mensaje  = data.get('mensaje', '').strip()
+    mensaje  = html_lib.escape(data.get('mensaje', '').strip())
     emisor   = session['telefono']
 
     if not receptor or not mensaje:
@@ -90,26 +87,41 @@ def enviar():
     db.connection.commit()
     nuevo_id = cur.lastrowid
 
-    # Notificar al receptor
     cur.execute("SELECT nombre FROM usuarios WHERE telefono = %s", (emisor,))
     row = cur.fetchone()
     nombre_emisor = row[0] if row and row[0] else emisor
 
-    # Solo crear notif si no hay una no leída reciente del mismo emisor
     cur.execute("""
         SELECT id FROM notificaciones
-        WHERE telefono_destino = %s
-          AND mensaje LIKE %s
-          AND leida = 0
-          AND fecha >= NOW() - INTERVAL 5 MINUTE
+        WHERE telefono_destino = %s AND mensaje LIKE %s
+          AND leida = 0 AND fecha >= NOW() - INTERVAL 5 MINUTE
     """, (receptor, f'%{emisor}%'))
 
     if not cur.fetchone():
         cur.execute(
             "INSERT INTO notificaciones (telefono_destino, mensaje) VALUES (%s, %s)",
-            (receptor, f'💬 Nuevo mensaje de {nombre_emisor}')
+            (receptor, f'Nuevo mensaje de {nombre_emisor}')
         )
         db.connection.commit()
 
     cur.close()
     return jsonify({'mensaje': 'Enviado', 'id': nuevo_id}), 201
+
+
+@msg_bp.route('/conversacion/<contacto>', methods=['DELETE'])
+def eliminar_conversacion(contacto):
+    """Eliminar todos los mensajes de una conversación."""
+    if 'telefono' not in session:
+        return jsonify({'error': 'No autenticado'}), 401
+
+    telefono = session['telefono']
+    db = get_db()
+    cur = db.connection.cursor()
+    cur.execute("""
+        DELETE FROM mensajes
+        WHERE (emisor = %s AND receptor = %s)
+           OR (emisor = %s AND receptor = %s)
+    """, (telefono, contacto, contacto, telefono))
+    db.connection.commit()
+    cur.close()
+    return jsonify({'mensaje': 'Conversación eliminada'})

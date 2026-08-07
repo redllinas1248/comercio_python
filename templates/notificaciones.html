@@ -2,7 +2,11 @@
 {% block content %}
 <div class="notif-header">
   <h2 class="notif-title">Notificaciones</h2>
-  <button class="notif-clear" onclick="marcarLeidas()">Marcar todas leídas</button>
+  <div style="display:flex;gap:.5rem">
+    <button class="notif-clear" onclick="marcarLeidas()">✓ Leídas</button>
+    <button class="notif-clear" style="color:var(--error);border-color:rgba(248,113,113,.3)"
+            onclick="borrarTodas()">🗑 Borrar todas</button>
+  </div>
 </div>
 <div id="notif-wrap"></div>
 
@@ -20,17 +24,43 @@ async function cargarNotificaciones() {
       return;
     }
     wrap.innerHTML = `<div class="notif-list">${notifs.map(n => `
-      <div class="notif-item ${n.leida ? '' : 'no-leida'}">
+      <div class="notif-item ${n.leida ? '' : 'no-leida'}" id="notif-${n.id}">
         <div class="notif-dot ${n.leida ? '' : 'activo'}"></div>
         <div class="notif-body">
           <p class="notif-msg">${formatNotif(n.mensaje)}</p>
           <p class="notif-fecha">${timeAgo(n.fecha)}</p>
         </div>
+        <button class="notif-del-btn" onclick="eliminarNotif(${n.id})" title="Eliminar">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
       </div>`).join('')}
     </div>`;
   } catch(e) {
     wrap.innerHTML = `<div class="empty"><p>${e.message}</p></div>`;
   }
+}
+
+async function eliminarNotif(id) {
+  try {
+    await api(`/api/notificaciones/${id}`, 'DELETE');
+    document.getElementById(`notif-${id}`)?.remove();
+    // Si no quedan notificaciones mostrar empty
+    const lista = document.querySelector('.notif-list');
+    if (lista && !lista.children.length) cargarNotificaciones();
+  } catch(e) { toast(e.message); }
+}
+
+async function borrarTodas() {
+  if (!confirm('¿Borrar todas las notificaciones?')) return;
+  try {
+    await api('/api/notificaciones/borrar-todas', 'DELETE');
+    toast('🗑 Notificaciones eliminadas');
+    cargarNotificaciones();
+    const badge = document.getElementById('notif-count');
+    if (badge) badge.style.display = 'none';
+  } catch(e) { toast(e.message); }
 }
 
 async function marcarLeidas() {
@@ -45,13 +75,12 @@ async function marcarLeidas() {
 
 function formatNotif(msg) {
   if (!msg) return '';
-  // Reemplazar ???? por emojis correctos según el contenido
   msg = escapeHtml(msg);
   msg = msg.replace(/^\?+\s*/, '');
-  if (msg.includes('mensaje'))       return '💬 ' + msg;
-  if (msg.includes('like') || msg.includes('dieron')) return '❤️ ' + msg;
+  if (msg.includes('mensaje'))                          return '💬 ' + msg;
+  if (msg.includes('like') || msg.includes('dieron'))   return '❤️ ' + msg;
   if (msg.includes('Comentaron') || msg.includes('comentario')) return '💬 ' + msg;
-  if (msg.includes('publicaci'))     return '📢 ' + msg;
+  if (msg.includes('publicaci'))                        return '📢 ' + msg;
   return '🔔 ' + msg;
 }
 

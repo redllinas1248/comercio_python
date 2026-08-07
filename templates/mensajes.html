@@ -14,6 +14,14 @@
       <div class="chat-header-nombre" id="chat-nombre">—</div>
       <div class="chat-header-tel" id="chat-tel"></div>
     </div>
+    <button class="chat-del-btn" onclick="eliminarConversacion()" title="Borrar conversación">
+      <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <polyline points="3 6 5 6 21 6"/>
+        <path d="M19 6l-1 14H6L5 6"/>
+        <path d="M10 11v6M14 11v6"/>
+        <path d="M9 6V4h6v2"/>
+      </svg>
+    </button>
   </div>
   <div class="chat-mensajes" id="chat-mensajes"></div>
   <div class="chat-input-row">
@@ -47,9 +55,9 @@ async function cargarConversaciones() {
       </div>`;
     } else {
       wrap.innerHTML = `<div class="convs-list">${convs.map(c => `
-        <div class="conv-item" onclick="abrirChat('${c.contacto}')">
-          <div class="conv-avatar">👤</div>
-          <div class="conv-body">
+        <div class="conv-item" id="conv-${c.contacto}">
+          <div class="conv-avatar" onclick="abrirChat('${c.contacto}')">👤</div>
+          <div class="conv-body" onclick="abrirChat('${c.contacto}')">
             <div class="conv-nombre">${escapeHtml(c.contacto)}</div>
             <div class="conv-ultimo">${escapeHtml(c.ultimo_mensaje || '')}</div>
           </div>
@@ -58,9 +66,8 @@ async function cargarConversaciones() {
       </div>`;
     }
 
-    // Si viene con ?con=TELEFONO abrir chat directo
-    const params  = new URLSearchParams(location.search);
-    const conTel  = params.get('con');
+    const params = new URLSearchParams(location.search);
+    const conTel = params.get('con');
     if (conTel) abrirChat(conTel);
 
   } catch(e) {
@@ -83,8 +90,8 @@ function cerrarChat() {
   document.getElementById('chat-panel').classList.remove('open');
   clearInterval(chatInterval);
   chatActivo = null;
-  // Limpiar ?con= de la URL sin recargar
   history.replaceState(null, '', '/mensajes');
+  cargarConversaciones();
 }
 
 async function cargarMensajes() {
@@ -101,8 +108,7 @@ async function cargarMensajes() {
             <span>${timeAgo(m.fecha)}</span>
           </div>`;
         }).join('')
-      : `<p style="text-align:center;color:var(--muted);font-size:.82rem;padding:2rem">
-           Di hola 👋</p>`;
+      : `<p style="text-align:center;color:var(--muted);font-size:.82rem;padding:2rem">Di hola 👋</p>`;
     if (atBottom || !wrap.dataset.loaded) {
       wrap.scrollTop = wrap.scrollHeight;
       wrap.dataset.loaded = '1';
@@ -118,6 +124,16 @@ async function enviarMensaje() {
   try {
     await api('/api/mensajes', 'POST', { receptor: chatActivo, mensaje: texto });
     await cargarMensajes();
+  } catch(e) { toast(e.message); }
+}
+
+async function eliminarConversacion() {
+  if (!chatActivo) return;
+  if (!confirm(`¿Borrar toda la conversación con ${chatActivo}?`)) return;
+  try {
+    await api(`/api/mensajes/conversacion/${chatActivo}`, 'DELETE');
+    toast('🗑 Conversación eliminada');
+    cerrarChat();
   } catch(e) { toast(e.message); }
 }
 

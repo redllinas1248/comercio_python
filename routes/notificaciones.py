@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, session
+from flask import Blueprint, jsonify, session, request
 from db import get_db
 
 notif_bp = Blueprint('notificaciones', __name__, url_prefix='/api/notificaciones')
@@ -61,3 +61,39 @@ def no_leidas():
     total = cur.fetchone()[0]
     cur.close()
     return jsonify({'no_leidas': total})
+
+
+@notif_bp.route('/<int:notif_id>', methods=['DELETE'])
+def eliminar(notif_id):
+    """Eliminar una notificación."""
+    if 'telefono' not in session:
+        return jsonify({'error': 'No autenticado'}), 401
+
+    telefono = session['telefono']
+    db = get_db()
+    cur = db.connection.cursor()
+    cur.execute(
+        "DELETE FROM notificaciones WHERE id = %s AND telefono_destino = %s",
+        (notif_id, telefono)
+    )
+    db.connection.commit()
+    cur.close()
+    return jsonify({'mensaje': 'Notificación eliminada'})
+
+
+@notif_bp.route('/borrar-todas', methods=['DELETE'])
+def borrar_todas():
+    """Borrar todas las notificaciones del usuario."""
+    if 'telefono' not in session:
+        return jsonify({'error': 'No autenticado'}), 401
+
+    telefono = session['telefono']
+    db = get_db()
+    cur = db.connection.cursor()
+    cur.execute(
+        "DELETE FROM notificaciones WHERE telefono_destino = %s",
+        (telefono,)
+    )
+    db.connection.commit()
+    cur.close()
+    return jsonify({'mensaje': 'Todas eliminadas'})
