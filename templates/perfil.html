@@ -9,7 +9,7 @@ async function cargarPerfil() {
   try {
     const u = await api('/api/auth/yo');
     const avatar = u.foto
-      ? `<img src="/static/${u.foto}" class="p-avatar" id="p-avatar-img" />`
+      ? `<img src="${imgUrl(u.foto)}" class="p-avatar" id="p-avatar-img" />`
       : `<div class="p-avatar p-avatar-empty" id="p-avatar-img">👤</div>`;
     wrap.innerHTML = `
       <div class="p-card">
@@ -134,7 +134,7 @@ async function cargarMisPubs(telefono) {
     }
     wrap.innerHTML = pubs.map(p => `
       <div class="p-pub-item">
-        ${p.imagenes?.length ? `<img src="/static/${p.imagenes[0]}" class="p-pub-thumb" />` : '<div class="p-pub-thumb p-pub-nopic">🏷</div>'}
+        ${p.imagenes?.length ? `<img src="${imgUrl(p.imagenes[0])}" class="p-pub-thumb" />` : '<div class="p-pub-thumb p-pub-nopic">🏷</div>'}
         <div class="p-pub-body">
           <p class="p-pub-texto">${escapeHtml(p.contenido)}</p>
           <p class="p-pub-meta">❤️ ${p.total_likes} · 💬 ${p.total_comentarios} · ${timeAgo(p.fecha)}</p>

@@ -51,7 +51,11 @@ function sanitizarTel(tel) {
 }
 
 function timeAgo(fechaStr) {
-  const diff = Date.now() - new Date(fechaStr).getTime();
+  if (!fechaStr) return '';
+  // MySQL devuelve fechas como "2026-08-06 20:44:19" — reemplazar espacio por T
+  const fecha = new Date(String(fechaStr).replace(' ', 'T') + (String(fechaStr).includes('T') ? '' : 'Z'));
+  const diff = Date.now() - fecha.getTime();
+  if (isNaN(diff)) return fechaStr;
   const m = Math.floor(diff / 60000);
   if (m < 1)  return 'ahora';
   if (m < 60) return `hace ${m}m`;
@@ -59,7 +63,7 @@ function timeAgo(fechaStr) {
   if (h < 24) return `hace ${h}h`;
   const d = Math.floor(h / 24);
   if (d < 7)  return `hace ${d}d`;
-  return new Date(fechaStr).toLocaleDateString('es-MX', { day:'2-digit', month:'short' });
+  return fecha.toLocaleDateString('es-MX', { day:'2-digit', month:'short' });
 }
 
 /* ===== Modal login requerido ===== */
@@ -83,8 +87,6 @@ async function verificarSesion() {
     $('fab-login') && ($('fab-login').style.display = 'none');
     $('visitor-banner') && ($('visitor-banner').style.display = 'none');
     // Mostrar links de perfil/mensajes/notifs en navbar
-    document.querySelectorAll('.nav-auth').forEach(el => el.style.display = 'flex');
-    document.querySelectorAll('.nav-guest').forEach(el => el.style.display = 'none');
     actualizarBadge();
     setInterval(actualizarBadge, 30000);
   } catch (_) {

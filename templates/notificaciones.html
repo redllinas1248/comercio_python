@@ -23,7 +23,7 @@ async function cargarNotificaciones() {
       <div class="notif-item ${n.leida ? '' : 'no-leida'}">
         <div class="notif-dot ${n.leida ? '' : 'activo'}"></div>
         <div class="notif-body">
-          <p class="notif-msg">${escapeHtml(n.mensaje)}</p>
+          <p class="notif-msg">${formatNotif(n.mensaje)}</p>
           <p class="notif-fecha">${timeAgo(n.fecha)}</p>
         </div>
       </div>`).join('')}
@@ -41,6 +41,18 @@ async function marcarLeidas() {
     const badge = document.getElementById('notif-count');
     if (badge) badge.style.display = 'none';
   } catch(e) { toast(e.message); }
+}
+
+function formatNotif(msg) {
+  if (!msg) return '';
+  // Reemplazar ???? por emojis correctos según el contenido
+  msg = escapeHtml(msg);
+  msg = msg.replace(/^\?+\s*/, '');
+  if (msg.includes('mensaje'))       return '💬 ' + msg;
+  if (msg.includes('like') || msg.includes('dieron')) return '❤️ ' + msg;
+  if (msg.includes('Comentaron') || msg.includes('comentario')) return '💬 ' + msg;
+  if (msg.includes('publicaci'))     return '📢 ' + msg;
+  return '🔔 ' + msg;
 }
 
 document.addEventListener('DOMContentLoaded', cargarNotificaciones);
