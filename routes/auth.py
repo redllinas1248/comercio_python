@@ -151,20 +151,22 @@ def subir_foto():
     if 'foto' not in request.files:
         return jsonify({'error': 'No se envió ninguna imagen'}), 400
 
-    import os, time
-    from werkzeug.utils import secure_filename
-
     foto = request.files['foto']
     ext  = foto.filename.rsplit('.', 1)[-1].lower()
     if ext not in {'png','jpg','jpeg','gif','webp'}:
         return jsonify({'error': 'Formato no permitido'}), 400
 
-    nombre_archivo = f"perfil_{session['telefono']}_{int(time.time())}.{ext}"
-    carpeta = os.path.join('static', 'img', 'perfiles')
-    os.makedirs(carpeta, exist_ok=True)
-    foto.save(os.path.join(carpeta, nombre_archivo))
+    try:
+        import cloudinary.uploader
+        resultado = cloudinary.uploader.upload(
+            foto,
+            folder='comercio/perfiles',
+            resource_type='image'
+        )
+        ruta = resultado['secure_url']
+    except Exception as e:
+        return jsonify({'error': f'Error subiendo imagen: {str(e)}'}), 500
 
-    ruta = f"img/perfiles/{nombre_archivo}"
     db  = get_db()
     cur = db.connection.cursor()
     cur.execute("UPDATE usuarios SET foto = %s WHERE telefono = %s",
