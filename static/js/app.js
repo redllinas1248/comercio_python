@@ -86,7 +86,8 @@ async function verificarSesion() {
     $('fab-pub')  && ($('fab-pub').style.display   = 'flex');
     $('fab-login') && ($('fab-login').style.display = 'none');
     $('visitor-banner') && ($('visitor-banner').style.display = 'none');
-    // Mostrar links de perfil/mensajes/notifs en navbar
+    document.querySelectorAll('.nav-auth').forEach(el => el.style.display = 'flex');
+    document.querySelectorAll('.nav-guest').forEach(el => el.style.display = 'none');
     actualizarBadge();
     setInterval(actualizarBadge, 30000);
   } catch (_) {
