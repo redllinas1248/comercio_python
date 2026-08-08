@@ -43,6 +43,7 @@ def registro():
     session.permanent    = True
     session['telefono']   = telefono
     session['usuario_id'] = nuevo_id
+    session['rol']        = 'usuario'
     return jsonify({'mensaje': 'Registro exitoso', 'id': nuevo_id}), 201
 
 
@@ -139,7 +140,10 @@ def yo():
 
     keys = ['id','telefono','usuario','nombre','apellido','localidad',
             'foto','rol','correo','tipo','mostrar_telefono','mostrar_correo']
-    return jsonify(dict(zip(keys, row)))
+    data = dict(zip(keys, row))
+    # Sincronizar rol en sesión por si fue actualizado
+    session['rol'] = data.get('rol', 'usuario')
+    return jsonify(data)
 
 
 @auth_bp.route('/foto', methods=['POST'])

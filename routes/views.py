@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, redirect, session, url_for
 
 views_bp = Blueprint('views', __name__)
 
+
 def login_required(f):
     from functools import wraps
     @wraps(f)
@@ -10,6 +11,7 @@ def login_required(f):
             return redirect(url_for('views.login'))
         return f(*args, **kwargs)
     return decorated
+
 
 def admin_required(f):
     from functools import wraps

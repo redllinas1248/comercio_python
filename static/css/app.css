@@ -1337,3 +1337,16 @@ body {
   transition: background .15s, color .15s;
 }
 .chat-del-btn:hover { background: rgba(248,113,113,.1); color: var(--error); }
+
+/* ===== BORRAR PUBLICACIÓN EN FEED ===== */
+.card-del-btn {
+  background: none; border: none;
+  color: var(--muted); cursor: pointer;
+  padding: .35rem; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  margin-left: auto;
+  opacity: 0;
+  transition: opacity .15s, background .15s, color .15s;
+}
+.card:hover .card-del-btn { opacity: 1; }
+.card-del-btn:hover { background: rgba(248,113,113,.1); color: var(--error); }

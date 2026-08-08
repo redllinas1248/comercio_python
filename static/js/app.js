@@ -1,7 +1,8 @@
 /* ===== Utilidades ===== */
 const $ = id => document.getElementById(id);
 
-let SESION_ACTIVA = false; // Se actualiza al cargar
+let SESION_ACTIVA = false;
+let _miTel = null;
 
 function toast(msg, ms = 2800) {
   const el = $('toast');
@@ -80,8 +81,9 @@ function cerrarModalLogin(e) {
 /* ===== Verificar sesión ===== */
 async function verificarSesion() {
   try {
-    await api('/api/auth/yo');
+    const _yo = await api('/api/auth/yo');
     SESION_ACTIVA = true;
+    _miTel = _yo.telefono;
     // Mostrar fab de publicar, ocultar fab de login
     $('fab-pub')  && ($('fab-pub').style.display   = 'flex');
     $('fab-login') && ($('fab-login').style.display = 'none');
@@ -162,6 +164,15 @@ function renderPub(p) {
         </div>
         ${p.destacada ? '<span class="badge-destacada">⭐ Destacado</span>' : ''}
         <span class="card-badge">🏷 Venta</span>
+        ${(SESION_ACTIVA && p.tel_autor === _miTel) ? `
+          <button class="card-del-btn" onclick="event.stopPropagation();eliminarPubFeed(${pid})" title="Eliminar publicación">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6l-1 14H6L5 6"/>
+              <path d="M10 11v6M14 11v6"/>
+              <path d="M9 6V4h6v2"/>
+            </svg>
+          </button>` : ''}
       </div>
       <div class="card-contenido" style="cursor:pointer" onclick="location.href='/publicacion/${pid}'">${escapeHtml(p.contenido)}</div>
       ${p.precio ? `<div class="card-precio">$${escapeHtml(String(p.precio))}</div>` : ''}
@@ -365,6 +376,21 @@ async function enviarComentario(pubId) {
     input.disabled = false;
     input?.focus();
   }
+}
+
+/* ===== Eliminar publicación desde feed ===== */
+async function eliminarPubFeed(pubId) {
+  if (!confirm('¿Eliminar esta publicación?')) return;
+  try {
+    await api(`/api/publicaciones/${pubId}`, 'DELETE');
+    const card = document.getElementById(`pub-${pubId}`);
+    if (card) {
+      card.style.transition = 'opacity .3s';
+      card.style.opacity = '0';
+      setTimeout(() => card.remove(), 300);
+    }
+    toast('🗑 Publicación eliminada');
+  } catch(e) { toast(e.message); }
 }
 
 /* ===== WhatsApp ===== */
