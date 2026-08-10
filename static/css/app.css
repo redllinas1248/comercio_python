@@ -965,6 +965,66 @@ body {
 .seccion-btn:hover::before { opacity: 1; }
 .seccion-btn:active { transform: scale(.98); }
 
+/* ===== TRANSMISIÓN MILENIO NOTICIAS ===== */
+.youtube-live-wrap {
+  margin: 0 0 .9rem;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0,0,0,.12);
+}
+
+.youtube-live-header {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  padding: .75rem .9rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.youtube-live-dot {
+  width: 9px;
+  height: 9px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 0 4px rgba(239,68,68,.12);
+}
+
+.youtube-live-info {
+  display: flex;
+  flex-direction: column;
+  gap: .1rem;
+}
+
+.youtube-live-title {
+  font-size: .9rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.youtube-live-sub {
+  font-size: .72rem;
+  color: var(--muted);
+}
+
+.youtube-live-video {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+}
+
+.youtube-live-video iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
 /* Servicios — azul */
 .seccion-servicios {
   background: linear-gradient(135deg, #1e3a5f 0%, #1e293b 100%);
