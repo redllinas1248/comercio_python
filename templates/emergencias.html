@@ -18,7 +18,7 @@ async function cargarDirectorio() {
   const wrap = document.getElementById('dir-wrap');
   wrap.innerHTML = `<div class="spinner-feed"><span></span><span></span><span></span></div>`;
   try {
-    const grupos = await api('/api/directorio');
+    const grupos = await api('/api/directorio?tipo=emergencias');
     const cats   = Object.keys(grupos);
 
     if (!cats.length) {

@@ -3,10 +3,24 @@ from db import get_db
 
 dir_bp = Blueprint('directorio', __name__, url_prefix='/api/directorio')
 
+# Categorías que pertenecen a Servicios
+CATEGORIAS_SERVICIOS = {
+    'plomero', 'plomería', 'electricista', 'electricidad', 'carpintero',
+    'carpintería', 'pintor', 'pintura', 'albañil', 'construcción',
+    'mecánico', 'mecánica', 'jardinero', 'jardinería', 'servicios',
+    'servicio', 'técnico', 'reparación', 'reparaciones', 'otros servicios'
+}
+
+
+def es_servicio(categoria):
+    return any(s in categoria.lower() for s in CATEGORIAS_SERVICIOS)
+
 
 @dir_bp.route('', methods=['GET'])
 def listar():
-    """Lista todos los registros activos agrupados por categoría."""
+    """Lista registros activos. Filtro: ?tipo=servicios o ?tipo=emergencias"""
+    tipo = request.args.get('tipo', '').lower()
+
     db  = get_db()
     cur = db.connection.cursor()
     cur.execute("""
@@ -23,6 +37,13 @@ def listar():
     for row in rows:
         item = dict(zip(keys, row))
         cat  = item['categoria']
+
+        # Filtrar según tipo
+        if tipo == 'servicios' and not es_servicio(cat):
+            continue
+        if tipo == 'emergencias' and es_servicio(cat):
+            continue
+
         if cat not in grupos:
             grupos[cat] = []
         grupos[cat].append(item)
@@ -32,10 +53,9 @@ def listar():
 
 @dir_bp.route('', methods=['POST'])
 def crear():
-    """Admin: crear entrada en el directorio."""
     if session.get('rol') != 'admin':
         return jsonify({'error': 'Sin permiso'}), 403
-    data = request.get_json()
+    data   = request.get_json()
     campos = ['categoria','nombre','telefono','horario','direccion','icono','orden']
     valores = [data.get(c, '') or (0 if c == 'orden' else '') for c in campos]
 
@@ -53,11 +73,10 @@ def crear():
 
 @dir_bp.route('/<int:item_id>', methods=['PUT'])
 def actualizar(item_id):
-    """Admin: editar entrada."""
     if session.get('rol') != 'admin':
         return jsonify({'error': 'Sin permiso'}), 403
-    data = request.get_json()
-    campos = ['categoria','nombre','telefono','horario','direccion','icono','orden']
+    data    = request.get_json()
+    campos  = ['categoria','nombre','telefono','horario','direccion','icono','orden']
     updates = {k: data[k] for k in campos if k in data}
     if not updates:
         return jsonify({'error': 'Nada que actualizar'}), 400
@@ -75,7 +94,6 @@ def actualizar(item_id):
 
 @dir_bp.route('/<int:item_id>', methods=['DELETE'])
 def eliminar(item_id):
-    """Admin: eliminar entrada."""
     if session.get('rol') != 'admin':
         return jsonify({'error': 'Sin permiso'}), 403
     db  = get_db()
@@ -88,7 +106,6 @@ def eliminar(item_id):
 
 @dir_bp.route('/<int:item_id>/toggle', methods=['POST'])
 def toggle(item_id):
-    """Admin: activar/desactivar entrada."""
     if session.get('rol') != 'admin':
         return jsonify({'error': 'Sin permiso'}), 403
     db  = get_db()
