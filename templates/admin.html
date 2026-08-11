@@ -9,7 +9,6 @@
     <button class="admin-tab active" onclick="setAdminTab('pubs', this)">Publicaciones</button>
     <button class="admin-tab" onclick="setAdminTab('users', this)">Usuarios</button>
     <button class="admin-tab" onclick="setAdminTab('directorio', this)">Directorio</button>
-    <button class="admin-tab" onclick="setAdminTab('config', this)">Configuración</button>
   </div>
 
   <div id="admin-pubs">
@@ -18,28 +17,6 @@
   <div id="admin-users" style="display:none">
     <div id="users-wrap"></div>
   </div>
-  <div id="admin-config" style="display:none">
-    <div class="admin-config-card">
-      <h3 class="p-section-title" style="margin-bottom:.35rem">🖼️ Logo del sitio</h3>
-      <p class="admin-config-help">Sube una nueva imagen. Se guardará en Cloudinary y reemplazará el logo actual del sitio.</p>
-
-      <div class="logo-config-preview">
-        <img id="admin-logo-preview" src="{{ logo_url }}" alt="Logo actual"/>
-      </div>
-
-      <form id="logo-form" class="logo-upload-form">
-        <label class="p-btn-save logo-file-label" for="logo-input">📁 Seleccionar imagen</label>
-        <input id="logo-input" name="logo" type="file" accept=".png,.jpg,.jpeg,.gif,.webp,.svg,image/*" hidden/>
-        <span id="logo-file-name" class="logo-file-name">Ningún archivo seleccionado</span>
-        <button type="submit" class="p-btn-save">
-          <span id="logo-btn-text">☁️ Guardar logo</span>
-          <div class="spinner-btn"></div>
-        </button>
-      </form>
-      <p class="admin-config-help">Formatos: PNG, JPG, JPEG, GIF, WEBP o SVG.</p>
-    </div>
-  </div>
-
   <div id="admin-directorio" style="display:none">
     <div class="dir-admin-form" id="dir-form">
       <h3 class="p-section-title" style="margin-bottom:.75rem">Agregar entrada</h3>
@@ -87,7 +64,6 @@ function setAdminTab(tab, el) {
   document.getElementById('admin-pubs').style.display        = tab === 'pubs'       ? 'block' : 'none';
   document.getElementById('admin-users').style.display       = tab === 'users'      ? 'block' : 'none';
   document.getElementById('admin-directorio').style.display  = tab === 'directorio' ? 'block' : 'none';
-  document.getElementById('admin-config').style.display      = tab === 'config'     ? 'block' : 'none';
   if (tab === 'pubs')       cargarAdminPubs();
   if (tab === 'users')      cargarAdminUsers();
   if (tab === 'directorio') cargarAdminDir();
@@ -108,7 +84,7 @@ async function cargarAdminPubs() {
                 <td><span id="dest-star-${p.id}" style="opacity:${p.likes >= 0 ? '0.3' : '1'}">⭐</span></td>
                 <td>${p.id}</td>
                 <td>
-                  <a href="/usuario/${p.telefono}" class="admin-link">${escapeHtml(p.autor || p.telefono)}</a>
+                  <a href="/usuario/${encodeJsValue(p.telefono)}" class="admin-link">${escapeHtml(p.autor || p.telefono)}</a>
                 </td>
                 <td class="admin-td-content">
                   <a href="/publicacion/${p.id}" class="admin-link">${escapeHtml(p.contenido)}</a>
@@ -133,7 +109,7 @@ async function cargarAdminPubs() {
         </table>
       </div>`;
   } catch(e) {
-    wrap.innerHTML = `<div class="empty"><p>${e.message}</p></div>`;
+    wrap.innerHTML = `<div class="empty"><p>${escapeHtml(e.message)}</p></div>`;
   }
 }
 
@@ -150,15 +126,15 @@ async function cargarAdminUsers() {
             ${users.map(u => `
               <tr id="row-user-${u.id}">
                 <td>${u.id}</td>
-                <td><a href="/usuario/${u.telefono}" class="admin-link">${u.telefono}</a></td>
+                <td><a href="/usuario/${encodeJsValue(u.telefono)}" class="admin-link">${escapeHtml(u.telefono)}</a></td>
                 <td>${escapeHtml(u.nombre || '—')}</td>
                 <td>${escapeHtml(u.localidad || '—')}</td>
                 <td>${u.total_pubs}</td>
                 <td>
-                  <span class="admin-rol-badge ${u.rol === 'admin' ? 'admin' : ''}">${u.rol || 'usuario'}</span>
+                  <span class="admin-rol-badge ${u.rol === 'admin' ? 'admin' : ''}">${escapeHtml(u.rol || 'usuario')}</span>
                 </td>
                 <td class="admin-actions-cell">
-                  <button class="admin-btn-rol" onclick="toggleRol('${u.telefono}', '${u.rol}')"
+                  <button class="admin-btn-rol" onclick="toggleRol(${JSON.stringify(String(u.telefono))}, ${JSON.stringify(String(u.rol || 'usuario'))})"
                     title="${u.rol === 'admin' ? 'Quitar admin' : 'Hacer admin'}">
                     ${u.rol === 'admin' ? '👑 Quitar' : '👑 Admin'}
                   </button>
@@ -171,7 +147,7 @@ async function cargarAdminUsers() {
         </table>
       </div>`;
   } catch(e) {
-    wrap.innerHTML = `<div class="empty"><p>${e.message}</p></div>`;
+    wrap.innerHTML = `<div class="empty"><p>${escapeHtml(e.message)}</p></div>`;
   }
 }
 
@@ -222,54 +198,6 @@ async function banearUser(telefono) {
   } catch(e) { toast(e.message); }
 }
 
-document.getElementById('logo-input')?.addEventListener('change', function() {
-  const archivo = this.files[0];
-  if (!archivo) return;
-  document.getElementById('logo-file-name').textContent = archivo.name;
-
-  const lector = new FileReader();
-  lector.onload = e => {
-    document.getElementById('admin-logo-preview').src = e.target.result;
-  };
-  lector.readAsDataURL(archivo);
-});
-
-document.getElementById('logo-form')?.addEventListener('submit', async function(e) {
-  e.preventDefault();
-
-  const input = document.getElementById('logo-input');
-  if (!input.files.length) {
-    toast('⚠️ Selecciona una imagen primero');
-    return;
-  }
-
-  const btnText = document.getElementById('logo-btn-text');
-  const formData = new FormData();
-  formData.append('logo', input.files[0]);
-
-  btnText.textContent = '⏳ Subiendo...';
-
-  try {
-    const respuesta = await fetch('/admin/logo', {
-      method: 'POST',
-      body: formData
-    });
-    const data = await respuesta.json();
-
-    if (!respuesta.ok) throw new Error(data.error || 'No se pudo guardar el logo');
-
-    document.getElementById('admin-logo-preview').src = data.logo_url;
-    document.querySelector('.banner-img').src = data.logo_url;
-    toast('✅ Logo actualizado correctamente');
-    input.value = '';
-    document.getElementById('logo-file-name').textContent = 'Ningún archivo seleccionado';
-  } catch (e) {
-    toast('❌ ' + e.message);
-  } finally {
-    btnText.textContent = '☁️ Guardar logo';
-  }
-});
-
 document.addEventListener('DOMContentLoaded', cargarAdminPubs);
 
 // ===== DIRECTORIO ADMIN =====
@@ -298,7 +226,7 @@ async function cargarAdminDir() {
           <tbody>
             ${dirItems.map(item => `
               <tr id="dir-row-${item.id}">
-                <td>${item.icono}</td>
+                <td>${escapeHtml(item.icono || '📍')}</td>
                 <td>${escapeHtml(item.categoria)}</td>
                 <td>${escapeHtml(item.nombre)}</td>
                 <td>${escapeHtml(item.telefono || '—')}</td>
@@ -312,7 +240,7 @@ async function cargarAdminDir() {
         </table>
       </div>`;
   } catch(e) {
-    wrap.innerHTML = `<p style="color:var(--error)">${e.message}</p>`;
+    wrap.innerHTML = `<p style="color:var(--error)">${escapeHtml(e.message)}</p>`;
   }
 }
 

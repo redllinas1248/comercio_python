@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify, session
 from db import get_db
+from security import get_current_user
 
 likes_bp = Blueprint('likes', __name__, url_prefix='/api/likes')
 
@@ -23,13 +24,17 @@ def listar(pub_id):
 @likes_bp.route('', methods=['POST'])
 def reaccionar():
     """Dar o quitar reacción (toggle)."""
-    if 'telefono' not in session:
+    user = get_current_user()
+    if not user:
         return jsonify({'error': 'No autenticado'}), 401
 
-    data      = request.get_json()
-    pub_id    = data.get('publicacion_id')
+    data      = request.get_json(silent=True) or {}
+    try:
+        pub_id = int(data.get('publicacion_id'))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'Publicación inválida'}), 400
     reaccion  = data.get('reaccion', 'like')
-    telefono  = session['telefono']
+    telefono  = user['telefono']
 
     if reaccion not in REACCIONES_VALIDAS:
         return jsonify({'error': 'Reacción no válida'}), 400

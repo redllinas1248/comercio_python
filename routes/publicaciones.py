@@ -2,6 +2,7 @@ import os, time
 from flask import Blueprint, request, jsonify, session, current_app
 from werkzeug.utils import secure_filename
 from db import get_db
+from security import require_api_admin, get_current_user
 
 pub_bp = Blueprint('publicaciones', __name__, url_prefix='/api/publicaciones')
 
@@ -21,8 +22,11 @@ def subir_cloudinary(archivo, carpeta='posts'):
 def listar():
     categoria_id    = request.args.get('categoria_id')
     telefono_filtro = request.args.get('telefono')
-    limite = int(request.args.get('limite', 20))
-    offset = int(request.args.get('offset', 0))
+    try:
+        limite = max(1, min(int(request.args.get('limite', 20)), 50))
+        offset = max(0, int(request.args.get('offset', 0)))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'Paginación inválida'}), 400
 
     db  = get_db()
     cur = db.connection.cursor()
@@ -104,17 +108,33 @@ def detalle(pub_id):
 
 @pub_bp.route('', methods=['POST'])
 def crear():
-    if 'telefono' not in session:
+    user = get_current_user()
+    if not user:
         return jsonify({'error': 'No autenticado'}), 401
 
     import html
-    contenido    = html.escape(request.form.get('contenido', '').strip())
+    contenido    = html.escape(request.form.get('contenido', '').strip())[:5000]
     categoria_id = request.form.get('categoria_id')
     precio       = request.form.get('precio', '').strip() or None
-    telefono     = session['telefono']
+    telefono     = user['telefono']
 
     if not contenido:
         return jsonify({'error': 'El contenido es obligatorio'}), 400
+
+    try:
+        categoria_id = int(categoria_id) if categoria_id not in (None, '') else None
+    except (TypeError, ValueError):
+        return jsonify({'error': 'Categoría inválida'}), 400
+
+    if precio is not None:
+        try:
+            from decimal import Decimal, InvalidOperation
+            valor = Decimal(precio)
+            if valor < 0 or valor > Decimal('999999999.99') or valor.as_tuple().exponent < -2:
+                raise InvalidOperation
+            precio = f"{valor:.2f}"
+        except (InvalidOperation, ValueError):
+            return jsonify({'error': 'Precio inválido'}), 400
 
     db  = get_db()
     cur = db.connection.cursor()
@@ -182,7 +202,8 @@ def crear():
 
 @pub_bp.route('/<int:pub_id>', methods=['DELETE'])
 def eliminar(pub_id):
-    if 'telefono' not in session:
+    user = get_current_user()
+    if not user:
         return jsonify({'error': 'No autenticado'}), 401
 
     db  = get_db()
@@ -193,7 +214,7 @@ def eliminar(pub_id):
     if not row:
         cur.close()
         return jsonify({'error': 'No encontrada'}), 404
-    if row[0] != session['telefono'] and session.get('rol') != 'admin':
+    if row[0] != user['telefono'] and user['rol'] != 'admin':
         cur.close()
         return jsonify({'error': 'Sin permiso'}), 403
 
@@ -215,10 +236,11 @@ def categorias():
 
 @pub_bp.route('/<int:pub_id>/destacar', methods=['POST'])
 def destacar(pub_id):
-    if session.get('rol') != 'admin':
-        return jsonify({'error': 'Sin permiso'}), 403
+    _, error = require_api_admin()
+    if error:
+        return error
 
-    data   = request.get_json()
+    data   = request.get_json(silent=True) or {}
     activar = data.get('destacada', True)
 
     db  = get_db()
@@ -237,7 +259,10 @@ def destacar(pub_id):
 @pub_bp.route('/buscar', methods=['GET'])
 def buscar():
     q      = request.args.get('q', '').strip()
-    limite = int(request.args.get('limite', 20))
+    try:
+        limite = max(1, min(int(request.args.get('limite', 20)), 50))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'Límite inválido'}), 400
     if not q:
         return jsonify([])
 
@@ -273,8 +298,9 @@ def buscar():
 
 @pub_bp.route('/admin/lista', methods=['GET'])
 def admin_lista():
-    if session.get('rol') != 'admin':
-        return jsonify({'error': 'Sin permiso'}), 403
+    _, error = require_api_admin()
+    if error:
+        return error
     db  = get_db()
     cur = db.connection.cursor()
     cur.execute("""

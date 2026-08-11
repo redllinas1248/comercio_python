@@ -46,7 +46,7 @@ async function buscar(q) {
               ? `<img src="/static/${p.autor_foto}" class="avatar" />`
               : `<div class="avatar">👤</div>`}
             <div class="card-meta">
-              <div class="card-autor" onclick="event.stopPropagation();location.href='/usuario/${p.telefono}'">${escapeHtml(p.autor || p.telefono)}</div>
+              <div class="card-autor" onclick="event.stopPropagation();location.href='/usuario/' + encodeJsValue(p.telefono)">${escapeHtml(p.autor || p.telefono)}</div>
               <div class="card-fecha">${timeAgo(p.fecha)}</div>
             </div>
             <span class="card-badge">🏷 Venta</span>
@@ -62,7 +62,7 @@ async function buscar(q) {
           </div>
         </div>`).join('')}`;
   } catch(e) {
-    wrap.innerHTML = `<div class="empty"><p>${e.message}</p></div>`;
+    wrap.innerHTML = `<div class="empty"><p>${escapeHtml(e.message)}</p></div>`;
   }
 }
 

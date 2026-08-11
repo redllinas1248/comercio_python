@@ -1,16 +1,18 @@
 from flask import Blueprint, request, jsonify, session
 from db import get_db
 import html as html_lib
+from security import get_current_user, valid_phone
 
 msg_bp = Blueprint('mensajes', __name__, url_prefix='/api/mensajes')
 
 
 @msg_bp.route('/conversaciones', methods=['GET'])
 def conversaciones():
-    if 'telefono' not in session:
+    user = get_current_user()
+    if not user:
         return jsonify({'error': 'No autenticado'}), 401
 
-    telefono = session['telefono']
+    telefono = user['telefono']
     db = get_db()
     cur = db.connection.cursor()
     cur.execute("""
@@ -42,10 +44,13 @@ def conversaciones():
 
 @msg_bp.route('/<receptor>', methods=['GET'])
 def hilo(receptor):
-    if 'telefono' not in session:
+    user = get_current_user()
+    if not user:
         return jsonify({'error': 'No autenticado'}), 401
+    if not valid_phone(receptor):
+        return jsonify({'error': 'Contacto inválido'}), 400
 
-    emisor = session['telefono']
+    emisor = user['telefono']
     db = get_db()
     cur = db.connection.cursor()
     cur.execute("""
@@ -67,15 +72,20 @@ def hilo(receptor):
 
 @msg_bp.route('', methods=['POST'])
 def enviar():
-    if 'telefono' not in session:
+    user = get_current_user()
+    if not user:
         return jsonify({'error': 'No autenticado'}), 401
 
-    data     = request.get_json()
-    receptor = data.get('receptor', '').strip()
-    mensaje  = html_lib.escape(data.get('mensaje', '').strip())
-    emisor   = session['telefono']
+    data     = request.get_json(silent=True) or {}
+    receptor = str(data.get('receptor') or '').strip()
+    mensaje  = html_lib.escape(str(data.get('mensaje') or '').strip())[:2000]
+    emisor   = user['telefono']
 
-    if not receptor or not mensaje:
+    if not valid_phone(receptor):
+        return jsonify({'error': 'Receptor inválido'}), 400
+    if receptor == emisor:
+        return jsonify({'error': 'No puedes enviarte mensajes a ti mismo'}), 400
+    if not mensaje:
         return jsonify({'error': 'Receptor y mensaje son obligatorios'}), 400
 
     db = get_db()
@@ -111,10 +121,13 @@ def enviar():
 @msg_bp.route('/conversacion/<contacto>', methods=['DELETE'])
 def eliminar_conversacion(contacto):
     """Eliminar todos los mensajes de una conversación."""
-    if 'telefono' not in session:
+    user = get_current_user()
+    if not user:
         return jsonify({'error': 'No autenticado'}), 401
+    if not valid_phone(contacto):
+        return jsonify({'error': 'Contacto inválido'}), 400
 
-    telefono = session['telefono']
+    telefono = user['telefono']
     db = get_db()
     cur = db.connection.cursor()
     cur.execute("""

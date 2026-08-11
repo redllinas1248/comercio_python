@@ -486,9 +486,10 @@
 
       setLoading('btn-login', true);
       try {
+        const csrf = await getCsrfToken();
         const res = await fetch('/api/auth/login', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
           credentials: 'include',
           body: JSON.stringify({ telefono, pin })
         });
@@ -534,9 +535,10 @@
 
       setLoading('btn-registro', true);
       try {
+        const csrf = await getCsrfToken();
         const res = await fetch('/api/auth/registro', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
           credentials: 'include',
           body: JSON.stringify({ nombre, telefono, pin, usuario: telefono, localidad: comunidad })
         });

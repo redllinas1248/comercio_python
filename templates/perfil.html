@@ -25,9 +25,9 @@ async function cargarPerfil() {
             </label>
           </div>
           <div class="p-info">
-            <h2 class="p-nombre">${u.nombre || u.usuario || u.telefono}</h2>
-            <p class="p-telefono">📱 ${u.telefono}</p>
-            ${u.localidad ? `<p class="p-loc">📍 ${u.localidad}</p>` : ''}
+            <h2 class="p-nombre">${escapeHtml(u.nombre || u.usuario || u.telefono)}</h2>
+            <p class="p-telefono">📱 ${escapeHtml(u.telefono)}</p>
+            ${u.localidad ? `<p class="p-loc">📍 ${escapeHtml(u.localidad)}</p>` : ''}
           </div>
         </div>
 
@@ -62,19 +62,19 @@ async function cargarPerfil() {
           <div class="p-form">
             <div class="p-field">
               <label>Nombre</label>
-              <input id="p-nombre" type="text" value="${u.nombre || ''}" placeholder="Tu nombre" />
+              <input id="p-nombre" type="text" value="${escapeHtml(u.nombre || '')}" placeholder="Tu nombre" />
             </div>
             <div class="p-field">
               <label>Apellido</label>
-              <input id="p-apellido" type="text" value="${u.apellido || ''}" placeholder="Tu apellido" />
+              <input id="p-apellido" type="text" value="${escapeHtml(u.apellido || '')}" placeholder="Tu apellido" />
             </div>
             <div class="p-field">
               <label>Localidad</label>
-              <input id="p-localidad" type="text" value="${u.localidad || ''}" placeholder="Tu ciudad o municipio" />
+              <input id="p-localidad" type="text" value="${escapeHtml(u.localidad || '')}" placeholder="Tu ciudad o municipio" />
             </div>
             <div class="p-field">
               <label>Correo (opcional)</label>
-              <input id="p-correo" type="email" value="${u.correo || ''}" placeholder="tu@correo.com" />
+              <input id="p-correo" type="email" value="${escapeHtml(u.correo || '')}" placeholder="tu@correo.com" />
             </div>
             <button class="p-btn-save" id="btn-save" onclick="guardarPerfil()">
               <span class="btn-text">Guardar cambios</span>
@@ -94,7 +94,7 @@ async function cargarPerfil() {
     cargarMisPubs(u.telefono);
     cargarPuntos();
   } catch(e) {
-    wrap.innerHTML = `<div class="empty"><p>${e.message}</p></div>`;
+    wrap.innerHTML = `<div class="empty"><p>${escapeHtml(e.message)}</p></div>`;
   }
 }
 
@@ -127,7 +127,7 @@ function toggleAyudaPuntos() {
 async function cargarMisPubs(telefono) {
   const wrap = document.getElementById('mis-pubs');
   try {
-    const pubs = await api(`/api/publicaciones?telefono=${telefono}&limite=10`);
+    const pubs = await api(`/api/publicaciones?telefono=${encodeURIComponent(telefono)}&limite=10`);
     if (!pubs.length) {
       wrap.innerHTML = `<p style="color:var(--muted);font-size:.85rem">Aún no tienes publicaciones.</p>`;
       return;
@@ -147,7 +147,7 @@ async function cargarMisPubs(telefono) {
         </button>
       </div>`).join('');
   } catch(e) {
-    wrap.innerHTML = `<p style="color:var(--error);font-size:.82rem">${e.message}</p>`;
+    wrap.innerHTML = `<p style="color:var(--error);font-size:.82rem">${escapeHtml(e.message)}</p>`;
   }
 }
 
@@ -156,7 +156,11 @@ async function subirFoto(input) {
   const fd = new FormData();
   fd.append('foto', input.files[0]);
   try {
-    const res = await fetch('/api/auth/foto', { method:'POST', body:fd, credentials:'include' });
+    const csrf = await getCsrfToken();
+      const res = await fetch('/api/auth/foto', {
+        method:'POST', body:fd, credentials:'include',
+        headers:{'X-CSRF-Token': csrf}
+      });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
     toast('✅ Foto actualizada');

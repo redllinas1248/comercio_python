@@ -2,16 +2,16 @@ import os
 import cloudinary
 
 class Config:
-    MYSQL_HOST     = os.environ.get('MYSQL_HOST',     'sql3.freesqldatabase.com')
-    MYSQL_USER     = os.environ.get('MYSQL_USER',     'sql3834541')
-    MYSQL_PASSWORD = os.environ.get('MYSQL_PASSWORD', 'qUDfkjI1SB')
-    MYSQL_DB       = os.environ.get('MYSQL_DB',       'sql3834541')
+    MYSQL_HOST     = os.environ.get('MYSQL_HOST')
+    MYSQL_USER     = os.environ.get('MYSQL_USER')
+    MYSQL_PASSWORD = os.environ.get('MYSQL_PASSWORD')
+    MYSQL_DB       = os.environ.get('MYSQL_DB')
     MYSQL_PORT     = int(os.environ.get('MYSQL_PORT', 3306))
 
     # Soporte completo de emojis y caracteres especiales
     MYSQL_CHARSET  = 'utf8mb4'
 
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'comercio-azueta-2026-seguro-xK9m')
+    SECRET_KEY = os.environ.get('SECRET_KEY')
 
     SESSION_COOKIE_SECURE   = True
     SESSION_COOKIE_HTTPONLY = True
@@ -24,9 +24,9 @@ class Config:
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
     ALLOWED_VIDEO_EXTS = {'mp4', 'mov', 'webm', 'avi'}
 
-    CLOUDINARY_CLOUD_NAME = os.environ.get('CLOUDINARY_CLOUD_NAME', 'bmztlvaf')
-    CLOUDINARY_API_KEY    = os.environ.get('CLOUDINARY_API_KEY',    '637691336519819')
-    CLOUDINARY_API_SECRET = os.environ.get('CLOUDINARY_API_SECRET', '1_FqsCD1JXh_oraFq__5_xCO7-E')
+    CLOUDINARY_CLOUD_NAME = os.environ.get('CLOUDINARY_CLOUD_NAME')
+    CLOUDINARY_API_KEY    = os.environ.get('CLOUDINARY_API_KEY')
+    CLOUDINARY_API_SECRET = os.environ.get('CLOUDINARY_API_SECRET')
 
 
 def init_cloudinary(app):

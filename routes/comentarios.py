@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify, session
 from db import get_db
+from security import get_current_user
 
 com_bp = Blueprint('comentarios', __name__, url_prefix='/api/comentarios')
 
@@ -27,14 +28,15 @@ def listar(pub_id):
 
 @com_bp.route('', methods=['POST'])
 def crear():
-    if 'telefono' not in session:
+    user = get_current_user()
+    if not user:
         return jsonify({'error': 'No autenticado'}), 401
 
     import html as html_lib
-    data         = request.get_json()
+    data         = request.get_json(silent=True) or {}
     pub_id       = data.get('publicacion_id')
-    comentario   = html_lib.escape(data.get('comentario', '').strip())
-    telefono     = session['telefono']
+    comentario   = html_lib.escape(str(data.get('comentario') or '').strip())[:2000]
+    telefono     = user['telefono']
 
     # Validar que pub_id sea entero
     try:
@@ -47,6 +49,11 @@ def crear():
 
     db = get_db()
     cur = db.connection.cursor()
+    cur.execute("SELECT id FROM publicaciones WHERE id = %s", (pub_id,))
+    if not cur.fetchone():
+        cur.close()
+        return jsonify({'error': 'Publicación no encontrada'}), 404
+
     cur.execute(
         "INSERT INTO comentarios (telefono, publicacion_id, comentario) VALUES (%s, %s, %s)",
         (telefono, pub_id, comentario)
@@ -70,7 +77,8 @@ def crear():
 
 @com_bp.route('/<int:com_id>', methods=['DELETE'])
 def eliminar(com_id):
-    if 'telefono' not in session:
+    user = get_current_user()
+    if not user:
         return jsonify({'error': 'No autenticado'}), 401
 
     db = get_db()
@@ -81,7 +89,7 @@ def eliminar(com_id):
     if not row:
         cur.close()
         return jsonify({'error': 'No encontrado'}), 404
-    if row[0] != session['telefono'] and session.get('rol') != 'admin':
+    if row[0] != user['telefono'] and user['rol'] != 'admin':
         cur.close()
         return jsonify({'error': 'Sin permiso'}), 403
 

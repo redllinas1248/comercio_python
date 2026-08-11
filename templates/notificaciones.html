@@ -38,7 +38,7 @@ async function cargarNotificaciones() {
       </div>`).join('')}
     </div>`;
   } catch(e) {
-    wrap.innerHTML = `<div class="empty"><p>${e.message}</p></div>`;
+    wrap.innerHTML = `<div class="empty"><p>${escapeHtml(e.message)}</p></div>`;
   }
 }
 

@@ -1,15 +1,17 @@
 from flask import Blueprint, jsonify, session, request
 from db import get_db
+from security import get_current_user
 
 notif_bp = Blueprint('notificaciones', __name__, url_prefix='/api/notificaciones')
 
 
 @notif_bp.route('', methods=['GET'])
 def listar():
-    if 'telefono' not in session:
+    user = get_current_user()
+    if not user:
         return jsonify({'error': 'No autenticado'}), 401
 
-    telefono = session['telefono']
+    telefono = user['telefono']
     db = get_db()
     cur = db.connection.cursor()
     cur.execute("""
@@ -31,10 +33,11 @@ def listar():
 
 @notif_bp.route('/marcar-leidas', methods=['POST'])
 def marcar_leidas():
-    if 'telefono' not in session:
+    user = get_current_user()
+    if not user:
         return jsonify({'error': 'No autenticado'}), 401
 
-    telefono = session['telefono']
+    telefono = user['telefono']
     db = get_db()
     cur = db.connection.cursor()
     cur.execute(
@@ -48,10 +51,11 @@ def marcar_leidas():
 
 @notif_bp.route('/no-leidas', methods=['GET'])
 def no_leidas():
-    if 'telefono' not in session:
+    user = get_current_user()
+    if not user:
         return jsonify({'error': 'No autenticado'}), 401
 
-    telefono = session['telefono']
+    telefono = user['telefono']
     db = get_db()
     cur = db.connection.cursor()
     cur.execute(
@@ -66,10 +70,11 @@ def no_leidas():
 @notif_bp.route('/<int:notif_id>', methods=['DELETE'])
 def eliminar(notif_id):
     """Eliminar una notificación."""
-    if 'telefono' not in session:
+    user = get_current_user()
+    if not user:
         return jsonify({'error': 'No autenticado'}), 401
 
-    telefono = session['telefono']
+    telefono = user['telefono']
     db = get_db()
     cur = db.connection.cursor()
     cur.execute(
@@ -84,10 +89,11 @@ def eliminar(notif_id):
 @notif_bp.route('/borrar-todas', methods=['DELETE'])
 def borrar_todas():
     """Borrar todas las notificaciones del usuario."""
-    if 'telefono' not in session:
+    user = get_current_user()
+    if not user:
         return jsonify({'error': 'No autenticado'}), 401
 
-    telefono = session['telefono']
+    telefono = user['telefono']
     db = get_db()
     cur = db.connection.cursor()
     cur.execute(

@@ -3,15 +3,15 @@
 <div id="pu-wrap"></div>
 
 <script>
-const TELEFONO = "{{ telefono }}";
+const TELEFONO = {{ telefono|tojson }};
 
 async function cargarPerfilUsuario() {
   const wrap = document.getElementById('pu-wrap');
   wrap.innerHTML = `<div class="spinner-feed"><span></span><span></span><span></span></div>`;
   try {
     const [u, pubs] = await Promise.all([
-      api(`/api/auth/usuario/${TELEFONO}`),
-      api(`/api/publicaciones?telefono=${TELEFONO}&limite=20`)
+      api(`/api/auth/usuario/${encodeURIComponent(TELEFONO)}`),
+      api(`/api/publicaciones?telefono=${encodeURIComponent(TELEFONO)}&limite=20`)
     ]);
 
     const avatar = u.foto
@@ -36,7 +36,7 @@ async function cargarPerfilUsuario() {
           </div>
         </div>
         <div class="pu-actions">
-          <button class="pu-btn-msg" onclick="iniciarChat('${u.telefono}')">
+          <button class="pu-btn-msg" onclick="iniciarChat(encodeJsValue(u.telefono))">
             <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
             </svg>
@@ -52,12 +52,12 @@ async function cargarPerfilUsuario() {
           : `<div class="empty"><div class="empty-icon">📦</div><p>Sin publicaciones aún.</p></div>`}
       </div>`;
   } catch(e) {
-    wrap.innerHTML = `<div class="empty"><p>${e.message}</p></div>`;
+    wrap.innerHTML = `<div class="empty"><p>${escapeHtml(e.message)}</p></div>`;
   }
 }
 
-function iniciarChat(telefono) {
-  location.href = `/mensajes?con=${telefono}`;
+function iniciarChat(encodedTelefono) {
+  location.href = `/mensajes?con=${encodedTelefono}`;
 }
 
 document.addEventListener('DOMContentLoaded', cargarPerfilUsuario);

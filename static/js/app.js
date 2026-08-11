@@ -13,8 +13,22 @@ function toast(msg, ms = 2800) {
   toast._t = setTimeout(() => el.classList.add('hidden'), ms);
 }
 
+let CSRF_TOKEN = null;
+
+async function getCsrfToken() {
+  if (CSRF_TOKEN) return CSRF_TOKEN;
+  const res = await fetch('/api/auth/csrf', { credentials: 'include' });
+  const data = await res.json();
+  if (!res.ok || !data.token) throw new Error('No se pudo obtener el token de seguridad');
+  CSRF_TOKEN = data.token;
+  return CSRF_TOKEN;
+}
+
 async function api(url, method = 'GET', body = null) {
   const opts = { method, headers: { 'Content-Type': 'application/json' }, credentials: 'include' };
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(method.toUpperCase())) {
+    opts.headers['X-CSRF-Token'] = await getCsrfToken();
+  }
   if (body) opts.body = JSON.stringify(body);
   const res = await fetch(url, opts);
   const data = await res.json();
@@ -49,6 +63,19 @@ function sanitizarId(val) {
 function sanitizarTel(tel) {
   // Solo permite números, +, espacios y guiones
   return String(tel || '').replace(/[^0-9+\-\s]/g, '');
+}
+
+function encodeJsValue(value) {
+  return encodeURIComponent(String(value ?? ''));
+}
+
+function decodeJsValue(value) {
+  try { return decodeURIComponent(String(value || '')); }
+  catch (_) { return ''; }
+}
+
+function contactarWAEncoded(encodedTel, encodedText, pid) {
+  contactarWA(decodeJsValue(encodedTel), pid, decodeJsValue(encodedText));
 }
 
 function timeAgo(fechaStr) {
@@ -285,7 +312,15 @@ async function publicar() {
   if (vid?.files.length) formData.append('videos', vid.files[0]);
 
   try {
-    await fetch('/api/publicaciones', { method: 'POST', body: formData, credentials: 'include' });
+    const csrf = await getCsrfToken();
+    const res = await fetch('/api/publicaciones', {
+      method: 'POST',
+      body: formData,
+      credentials: 'include',
+      headers: { 'X-CSRF-Token': csrf }
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'No se pudo publicar');
     cerrarModal();
     toast('✅ Publicación creada');
     cargarPublicaciones();

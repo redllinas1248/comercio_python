@@ -56,8 +56,8 @@ async function cargarConversaciones() {
     } else {
       wrap.innerHTML = `<div class="convs-list">${convs.map(c => `
         <div class="conv-item" id="conv-${c.contacto}">
-          <div class="conv-avatar" onclick="abrirChat('${c.contacto}')">👤</div>
-          <div class="conv-body" onclick="abrirChat('${c.contacto}')">
+          <div class="conv-avatar" onclick="abrirChat(decodeJsValue('${encodeURIComponent(c.contacto)}'))">👤</div>
+          <div class="conv-body" onclick="abrirChat(decodeJsValue('${encodeURIComponent(c.contacto)}'))">
             <div class="conv-nombre">${escapeHtml(c.contacto)}</div>
             <div class="conv-ultimo">${escapeHtml(c.ultimo_mensaje || '')}</div>
           </div>
@@ -71,7 +71,7 @@ async function cargarConversaciones() {
     if (conTel) abrirChat(conTel);
 
   } catch(e) {
-    wrap.innerHTML = `<div class="empty"><p>${e.message}</p></div>`;
+    wrap.innerHTML = `<div class="empty"><p>${escapeHtml(e.message)}</p></div>`;
   }
 }
 
