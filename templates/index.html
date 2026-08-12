@@ -49,6 +49,63 @@
   </div>
 </div>
 
+<!-- ===== NUEVO: CARRUSEL DE DESTACADAS ===== -->
+<div id="destacadas-wrap" style="margin-bottom:1rem;">
+  <div class="destacadas-header">
+    <span class="destacadas-icon">⭐</span>
+    <span class="destacadas-titulo">Publicaciones destacadas</span>
+  </div>
+  <div class="destacadas-slider" id="destacadas-slider">
+    <!-- El JS llenará esto -->
+  </div>
+</div>
+
+<!-- ===== NUEVO: CONTADORES DE ESTADÍSTICAS ===== -->
+<div class="stats-bar" id="stats-bar">
+  <div class="stat-item">
+    <span class="stat-icon">👥</span>
+    <span class="stat-number" id="stat-usuarios">—</span>
+    <span class="stat-label">Usuarios</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-icon">📝</span>
+    <span class="stat-number" id="stat-pubs-hoy">—</span>
+    <span class="stat-label">Publicaciones hoy</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-icon">👁️</span>
+    <span class="stat-number" id="stat-visitas">—</span>
+    <span class="stat-label">Visitas totales</span>
+  </div>
+</div>
+
+<!-- ===== NUEVO: WIDGET DE PUNTOS (si está logueado) ===== -->
+<div id="puntos-widget" style="display:none; margin-bottom:1rem;">
+  <div class="puntos-section" style="border-radius:var(--radius);padding:1rem;background:var(--bg2);border:1px solid var(--border);">
+    <div class="puntos-wrap">
+      <div class="puntos-principal">
+        <div class="puntos-numero" id="pw-puntos">—</div>
+        <div class="puntos-label">puntos</div>
+      </div>
+      <div class="puntos-info">
+        <div class="puntos-detalle" id="pw-pubs-hoy">— / 2 publicaciones hoy</div>
+        <div class="puntos-barra-wrap">
+          <div class="puntos-barra" id="pw-barra" style="width:0%"></div>
+        </div>
+        <button class="puntos-ayuda" onclick="toggleAyudaPuntosWidget()">
+          ¿Cómo funcionan los puntos? ℹ️
+        </button>
+      </div>
+    </div>
+    <div class="puntos-explicacion" id="pw-exp" style="display:none;margin-top:.75rem;background:var(--bg3);padding:.85rem;border-radius:10px;">
+      <p>🌟 Ganas <strong>1 punto</strong> por cada <strong>2 publicaciones</strong> que hagas.</p>
+      <p>📅 Puedes publicar máximo <strong>2 veces al día</strong>.</p>
+      <p>💎 Los puntos tienen valor — próximamente podrás canjearlos por beneficios en el pueblo.</p>
+      <p>🏆 ¡Sigue publicando para acumular más!</p>
+    </div>
+  </div>
+</div>
+
 <!-- Botones de secciones -->
 <div class="secciones-btns">
   <a href="/servicios" class="seccion-btn seccion-servicios">
@@ -132,5 +189,140 @@
   </div>
 </div>
 
-{% endblock %}
+<script>
+// Función para alternar ayuda de puntos en el widget
+function toggleAyudaPuntosWidget() {
+  const el = document.getElementById('pw-exp');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
 
+// ===== Cargar destacadas =====
+async function cargarDestacadas() {
+  const slider = document.getElementById('destacadas-slider');
+  try {
+    const pubs = await api('/api/publicaciones/destacadas');
+    if (!pubs.length) {
+      slider.innerHTML = `<p style="color:var(--muted);font-size:.85rem;padding:.5rem 0;text-align:center;">Sin publicaciones destacadas aún.</p>`;
+      return;
+    }
+    // Renderizar como slider (carrusel simple)
+    let html = `<div class="slider-track">`;
+    pubs.forEach(p => {
+      const img = p.imagenes && p.imagenes.length ? `<img src="${imgUrl(p.imagenes[0])}" />` : '';
+      html += `
+        <div class="slider-slide" onclick="location.href='/publicacion/${p.id}'">
+          ${img}
+          <div class="slider-caption">
+            <div class="slider-title">${escapeHtml(p.contenido).slice(0,80)}${p.contenido.length > 80 ? '…' : ''}</div>
+            <div class="slider-autor">${escapeHtml(p.autor || p.telefono)}</div>
+          </div>
+        </div>
+      `;
+    });
+    html += `</div><div class="slider-dots"></div>`;
+    slider.innerHTML = html;
+
+    // Inicializar slider con dots
+    const track = slider.querySelector('.slider-track');
+    const slides = track.querySelectorAll('.slider-slide');
+    const dotsContainer = slider.querySelector('.slider-dots');
+    let current = 0;
+
+    // Crear dots
+    slides.forEach((_, i) => {
+      const dot = document.createElement('span');
+      dot.className = 'slider-dot' + (i === 0 ? ' active' : '');
+      dot.dataset.index = i;
+      dot.addEventListener('click', () => goTo(i));
+      dotsContainer.appendChild(dot);
+    });
+
+    function goTo(index) {
+      if (index < 0) index = slides.length - 1;
+      if (index >= slides.length) index = 0;
+      current = index;
+      track.style.transform = `translateX(-${current * 100}%)`;
+      dotsContainer.querySelectorAll('.slider-dot').forEach((d, i) => {
+        d.classList.toggle('active', i === current);
+      });
+    }
+
+    // Auto-slide cada 4 segundos
+    let autoInterval = setInterval(() => goTo(current + 1), 4000);
+
+    // Pausar al hacer hover
+    slider.addEventListener('mouseenter', () => clearInterval(autoInterval));
+    slider.addEventListener('mouseleave', () => {
+      autoInterval = setInterval(() => goTo(current + 1), 4000);
+    });
+
+    // Touch support (simple)
+    let startX = 0;
+    slider.addEventListener('touchstart', e => { startX = e.touches[0].clientX; });
+    slider.addEventListener('touchend', e => {
+      const diff = startX - e.changedTouches[0].clientX;
+      if (Math.abs(diff) > 40) {
+        if (diff > 0) goTo(current + 1);
+        else goTo(current - 1);
+      }
+    });
+
+    window._sliderGoTo = goTo;
+  } catch(e) {
+    slider.innerHTML = `<p style="color:var(--error);font-size:.82rem;">Error al cargar destacadas</p>`;
+  }
+}
+
+// ===== Cargar estadísticas =====
+async function cargarEstadisticas() {
+  try {
+    const data = await api('/api/estadisticas');
+    document.getElementById('stat-usuarios').textContent = data.total_usuarios;
+    document.getElementById('stat-pubs-hoy').textContent = data.pubs_hoy;
+    document.getElementById('stat-visitas').textContent = data.visitas_totales.toLocaleString();
+  } catch(e) {
+    // Si falla, mostrar placeholders
+    document.getElementById('stat-usuarios').textContent = '—';
+    document.getElementById('stat-pubs-hoy').textContent = '—';
+    document.getElementById('stat-visitas').textContent = '—';
+  }
+}
+
+// ===== Cargar widget de puntos =====
+async function cargarPuntosWidget() {
+  const widget = document.getElementById('puntos-widget');
+  try {
+    const data = await api('/api/auth/puntos');
+    widget.style.display = 'block';
+    document.getElementById('pw-puntos').textContent = data.puntos;
+    document.getElementById('pw-pubs-hoy').textContent = data.pubs_hoy + ' / 2 publicaciones hoy';
+    const pct = Math.min((data.pubs_hoy / 2) * 100, 100);
+    document.getElementById('pw-barra').style.width = pct + '%';
+  } catch(e) {
+    widget.style.display = 'none';
+  }
+}
+
+// ===== Modificar la función verificarSesion para cargar puntos =====
+// Reemplazar la función original con esta versión extendida
+const _verificarSesionOriginal = verificarSesion;
+verificarSesion = async function() {
+  await _verificarSesionOriginal();
+  // Si hay sesión, cargar puntos
+  if (SESION_ACTIVA) {
+    cargarPuntosWidget();
+  } else {
+    document.getElementById('puntos-widget').style.display = 'none';
+  }
+};
+
+// ===== Cargar todo al inicio =====
+document.addEventListener('DOMContentLoaded', async function() {
+  await verificarSesion();
+  cargarPublicaciones();
+  cargarDestacadas();
+  cargarEstadisticas();
+  // Si ya hay sesión, cargar puntos (verificarSesion ya lo hará si se reemplazó)
+});
+</script>
+{% endblock %}

@@ -189,3 +189,34 @@ def servicios():
 @views_bp.route('/emergencias')
 def emergencias():
     return render_template('emergencias.html')
+
+
+# ===== NUEVO ENDPOINT: ESTADÍSTICAS PÚBLICAS =====
+@views_bp.route('/api/estadisticas', methods=['GET'])
+def estadisticas():
+    """Devuelve total de usuarios, publicaciones de hoy y visitas totales."""
+    db = get_db()
+    cur = db.connection.cursor()
+    try:
+        # Total de usuarios
+        cur.execute("SELECT COUNT(*) FROM usuarios")
+        total_usuarios = cur.fetchone()[0]
+
+        # Publicaciones de hoy (últimas 24h)
+        cur.execute("SELECT COUNT(*) FROM publicaciones WHERE fecha >= NOW() - INTERVAL 24 HOUR")
+        pubs_hoy = cur.fetchone()[0]
+
+        # Visitas totales
+        cur.execute("SELECT COALESCE(SUM(total), 0) FROM visitas")
+        visitas = int(cur.fetchone()[0] or 0)
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cur.close()
+
+    return jsonify({
+        'total_usuarios': total_usuarios,
+        'pubs_hoy': pubs_hoy,
+        'visitas_totales': visitas
+    })

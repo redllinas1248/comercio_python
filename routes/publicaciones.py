@@ -319,3 +319,36 @@ def admin_lista():
         r['fecha'] = str(r['fecha'])
     cur.close()
     return jsonify(result)
+
+
+# ===== NUEVO ENDPOINT: PUBLICACIONES DESTACADAS =====
+@pub_bp.route('/destacadas', methods=['GET'])
+def destacadas():
+    """Devuelve las publicaciones marcadas como destacadas (destacada=1)."""
+    db = get_db()
+    cur = db.connection.cursor()
+    cur.execute("""
+        SELECT p.id, p.telefono, p.contenido, p.fecha, p.precio,
+               u.nombre AS autor, u.foto AS autor_foto, u.telefono AS tel_autor, u.localidad AS comunidad,
+               (SELECT COUNT(*) FROM likes l WHERE l.publicacion_id = p.id) AS total_likes,
+               (SELECT COUNT(*) FROM comentarios co WHERE co.publicacion_id = p.id) AS total_comentarios
+        FROM publicaciones p
+        LEFT JOIN usuarios u ON u.telefono = p.telefono
+        WHERE p.destacada = 1
+        ORDER BY p.fecha DESC
+        LIMIT 10
+    """)
+    rows = cur.fetchall()
+    keys = ['id','telefono','contenido','fecha','precio','autor','autor_foto','tel_autor','comunidad','total_likes','total_comentarios']
+    publicaciones = []
+    for row in rows:
+        pub = dict(zip(keys, row))
+        pub['fecha'] = str(pub['fecha'])
+        pub['precio'] = str(pub['precio']) if pub['precio'] else None
+        cur.execute("SELECT ruta FROM publicaciones_imagenes WHERE publicacion_id = %s", (pub['id'],))
+        pub['imagenes'] = [r[0] for r in cur.fetchall()]
+        cur.execute("SELECT ruta FROM publicaciones_videos WHERE publicacion_id = %s", (pub['id'],))
+        pub['videos'] = [r[0] for r in cur.fetchall()]
+        publicaciones.append(pub)
+    cur.close()
+    return jsonify(publicaciones)

@@ -498,3 +498,29 @@ document.addEventListener('DOMContentLoaded', async () => {
   await verificarSesion();
   cargarPublicaciones();
 });
+// ===== FUNCIONES PARA LAS NUEVAS SECCIONES DEL INICIO =====
+// (Estas funciones ya están en index.html, pero si quieres centralizarlas, puedes moverlas aquí)
+// Sin embargo, las dejamos en index.html para mantener la separación.
+// Solo agregamos un parche para que verificarSesion también cargue puntos.
+
+// Sobrescribir verificarSesion para incluir la carga de puntos
+const __verificarSesionOriginal = verificarSesion;
+verificarSesion = async function() {
+  await __verificarSesionOriginal();
+  if (SESION_ACTIVA && document.getElementById('puntos-widget')) {
+    try {
+      const data = await api('/api/auth/puntos');
+      const widget = document.getElementById('puntos-widget');
+      widget.style.display = 'block';
+      document.getElementById('pw-puntos').textContent = data.puntos;
+      document.getElementById('pw-pubs-hoy').textContent = data.pubs_hoy + ' / 2 publicaciones hoy';
+      const pct = Math.min((data.pubs_hoy / 2) * 100, 100);
+      document.getElementById('pw-barra').style.width = pct + '%';
+    } catch(e) {
+      // silencio
+    }
+  } else {
+    const widget = document.getElementById('puntos-widget');
+    if (widget) widget.style.display = 'none';
+  }
+};
