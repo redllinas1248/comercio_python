@@ -20,8 +20,10 @@ def subir_cloudinary(archivo, carpeta='posts'):
 
 @pub_bp.route('', methods=['GET'])
 def listar():
+    """Lista publicaciones NO destacadas (feed principal)."""
     categoria_id    = request.args.get('categoria_id')
     telefono_filtro = request.args.get('telefono')
+    incluir_destacadas = request.args.get('incluir_destacadas', 'false').lower() == 'true'
     try:
         limite = max(1, min(int(request.args.get('limite', 20)), 50))
         offset = max(0, int(request.args.get('offset', 0)))
@@ -31,7 +33,7 @@ def listar():
     db  = get_db()
     cur = db.connection.cursor()
 
-    condiciones = []
+    condiciones = ["p.destacada = 0"]  # <--- EXCLUIR DESTACADAS POR DEFECTO
     params      = []
     if categoria_id:
         condiciones.append("p.categoria_id = %s")
@@ -40,7 +42,11 @@ def listar():
         condiciones.append("p.telefono = %s")
         params.append(telefono_filtro)
 
-    where = ("WHERE " + " AND ".join(condiciones)) if condiciones else ""
+    # Si se pide incluir destacadas (para algún uso especial), quitamos el filtro
+    if incluir_destacadas:
+        condiciones = [c for c in condiciones if c != "p.destacada = 0"]
+
+    where = "WHERE " + " AND ".join(condiciones) if condiciones else ""
 
     cur.execute(f"""
         SELECT p.id, p.telefono, p.contenido, p.fecha, p.categoria_id,
@@ -53,7 +59,7 @@ def listar():
         LEFT JOIN categorias c ON c.id = p.categoria_id
         LEFT JOIN usuarios u ON u.telefono = p.telefono
         {where}
-        ORDER BY p.destacada DESC, p.fecha DESC
+        ORDER BY p.fecha DESC
         LIMIT %s OFFSET %s
     """, params + [limite, offset])
 

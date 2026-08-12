@@ -3,13 +3,11 @@
 
 <!-- Botón flotante — cambia según sesión -->
 <div id="fab-wrap">
-  <!-- Para usuarios con sesión: nueva publicación -->
   <button class="fab" id="fab-pub" style="display:none" onclick="abrirModal()" title="Nueva publicación">
     <svg width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
       <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
     </svg>
   </button>
-  <!-- Para visitantes: iniciar sesión -->
   <a href="/login" class="fab fab-login" id="fab-login" style="display:none" title="Iniciar sesión">
     <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
       <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/>
@@ -28,7 +26,7 @@
   </div>
 </div>
 
-<!-- Transmisión en vivo — Milenio Noticias -->
+<!-- ===== 1. TRANSMISIÓN EN VIVO ===== -->
 <div class="youtube-live-wrap">
   <div class="youtube-live-header">
     <span class="youtube-live-dot"></span>
@@ -49,7 +47,7 @@
   </div>
 </div>
 
-<!-- ===== NUEVO: CARRUSEL DE DESTACADAS ===== -->
+<!-- ===== 2. CARRUSEL DE DESTACADAS ===== -->
 <div id="destacadas-wrap" style="margin-bottom:1rem;">
   <div class="destacadas-header">
     <span class="destacadas-icon">⭐</span>
@@ -60,7 +58,7 @@
   </div>
 </div>
 
-<!-- ===== NUEVO: CONTADORES DE ESTADÍSTICAS ===== -->
+<!-- ===== 3. CONTADORES DE ESTADÍSTICAS ===== -->
 <div class="stats-bar" id="stats-bar">
   <div class="stat-item">
     <span class="stat-icon">👥</span>
@@ -79,7 +77,7 @@
   </div>
 </div>
 
-<!-- ===== NUEVO: WIDGET DE PUNTOS (si está logueado) ===== -->
+<!-- ===== 4. WIDGET DE PUNTOS (solo si está logueado) ===== -->
 <div id="puntos-widget" style="display:none; margin-bottom:1rem;">
   <div class="puntos-section" style="border-radius:var(--radius);padding:1rem;background:var(--bg2);border:1px solid var(--border);">
     <div class="puntos-wrap">
@@ -106,7 +104,7 @@
   </div>
 </div>
 
-<!-- Botones de secciones -->
+<!-- ===== 5. BOTONES DE SECCIONES ===== -->
 <div class="secciones-btns">
   <a href="/servicios" class="seccion-btn seccion-servicios">
     <span class="seccion-ico">🔧</span>
@@ -130,9 +128,10 @@
   </a>
 </div>
 
-<!-- Feed -->
+<!-- ===== 6. FEED DE PUBLICACIONES (sin destacadas) ===== -->
 <div id="feed" class="feed"></div>
 
+<!-- MODALES -->
 <!-- Modal login requerido -->
 <div class="modal-overlay" id="modal-login-req" onclick="cerrarModalLogin(event)">
   <div class="modal modal-login-req-inner">
@@ -145,7 +144,7 @@
   </div>
 </div>
 
-<!-- Modal nueva publicación (solo usuarios con sesión) -->
+<!-- Modal nueva publicación -->
 <div class="modal-overlay" id="modal-overlay" onclick="cerrarModal(event)">
   <div class="modal" id="modal-pub">
     <div class="modal-header">
@@ -205,7 +204,6 @@ async function cargarDestacadas() {
       slider.innerHTML = `<p style="color:var(--muted);font-size:.85rem;padding:.5rem 0;text-align:center;">Sin publicaciones destacadas aún.</p>`;
       return;
     }
-    // Renderizar como slider (carrusel simple)
     let html = `<div class="slider-track">`;
     pubs.forEach(p => {
       const img = p.imagenes && p.imagenes.length ? `<img src="${imgUrl(p.imagenes[0])}" />` : '';
@@ -222,13 +220,11 @@ async function cargarDestacadas() {
     html += `</div><div class="slider-dots"></div>`;
     slider.innerHTML = html;
 
-    // Inicializar slider con dots
     const track = slider.querySelector('.slider-track');
     const slides = track.querySelectorAll('.slider-slide');
     const dotsContainer = slider.querySelector('.slider-dots');
     let current = 0;
 
-    // Crear dots
     slides.forEach((_, i) => {
       const dot = document.createElement('span');
       dot.className = 'slider-dot' + (i === 0 ? ' active' : '');
@@ -247,16 +243,11 @@ async function cargarDestacadas() {
       });
     }
 
-    // Auto-slide cada 4 segundos
     let autoInterval = setInterval(() => goTo(current + 1), 4000);
-
-    // Pausar al hacer hover
     slider.addEventListener('mouseenter', () => clearInterval(autoInterval));
     slider.addEventListener('mouseleave', () => {
       autoInterval = setInterval(() => goTo(current + 1), 4000);
     });
-
-    // Touch support (simple)
     let startX = 0;
     slider.addEventListener('touchstart', e => { startX = e.touches[0].clientX; });
     slider.addEventListener('touchend', e => {
@@ -266,7 +257,6 @@ async function cargarDestacadas() {
         else goTo(current - 1);
       }
     });
-
     window._sliderGoTo = goTo;
   } catch(e) {
     slider.innerHTML = `<p style="color:var(--error);font-size:.82rem;">Error al cargar destacadas</p>`;
@@ -281,7 +271,6 @@ async function cargarEstadisticas() {
     document.getElementById('stat-pubs-hoy').textContent = data.pubs_hoy;
     document.getElementById('stat-visitas').textContent = data.visitas_totales.toLocaleString();
   } catch(e) {
-    // Si falla, mostrar placeholders
     document.getElementById('stat-usuarios').textContent = '—';
     document.getElementById('stat-pubs-hoy').textContent = '—';
     document.getElementById('stat-visitas').textContent = '—';
@@ -303,12 +292,10 @@ async function cargarPuntosWidget() {
   }
 }
 
-// ===== Modificar la función verificarSesion para cargar puntos =====
-// Reemplazar la función original con esta versión extendida
+// ===== Sobrescribir verificarSesion para cargar puntos =====
 const _verificarSesionOriginal = verificarSesion;
 verificarSesion = async function() {
   await _verificarSesionOriginal();
-  // Si hay sesión, cargar puntos
   if (SESION_ACTIVA) {
     cargarPuntosWidget();
   } else {
@@ -322,7 +309,6 @@ document.addEventListener('DOMContentLoaded', async function() {
   cargarPublicaciones();
   cargarDestacadas();
   cargarEstadisticas();
-  // Si ya hay sesión, cargar puntos (verificarSesion ya lo hará si se reemplazó)
 });
 </script>
 {% endblock %}
