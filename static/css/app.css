@@ -1859,3 +1859,56 @@ body {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.4; transform: scale(0.8); }
 }
+/* ===== REPRODUCTOR DE TRANSMISIONES ===== */
+.youtube-live-wrap {
+  margin: 0 0 0.9rem;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0,0,0,.12);
+}
+.youtube-live-header {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.75rem 0.9rem;
+  border-bottom: 1px solid var(--border);
+}
+.youtube-live-dot {
+  width: 9px;
+  height: 9px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 0 4px rgba(239,68,68,.12);
+  animation: pulse-dot 1.2s ease-in-out infinite;
+}
+.youtube-live-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.youtube-live-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.youtube-live-sub {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+.youtube-live-video {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+}
+.youtube-live-video iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
