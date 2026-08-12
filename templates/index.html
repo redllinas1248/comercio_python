@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 
-<!-- Botón flotante — cambia según sesión -->
+<!-- Botón flotante -->
 <div id="fab-wrap">
   <button class="fab" id="fab-pub" style="display:none" onclick="abrirModal()" title="Nueva publicación">
     <svg width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
@@ -128,11 +128,10 @@
   </a>
 </div>
 
-<!-- ===== 6. FEED DE PUBLICACIONES (sin destacadas) ===== -->
+<!-- ===== 6. FEED DE PUBLICACIONES ===== -->
 <div id="feed" class="feed"></div>
 
 <!-- MODALES -->
-<!-- Modal login requerido -->
 <div class="modal-overlay" id="modal-login-req" onclick="cerrarModalLogin(event)">
   <div class="modal modal-login-req-inner">
     <div class="modal-login-ico">🔐</div>
@@ -144,7 +143,6 @@
   </div>
 </div>
 
-<!-- Modal nueva publicación -->
 <div class="modal-overlay" id="modal-overlay" onclick="cerrarModal(event)">
   <div class="modal" id="modal-pub">
     <div class="modal-header">
@@ -292,23 +290,26 @@ async function cargarPuntosWidget() {
   }
 }
 
-// ===== Sobrescribir verificarSesion para cargar puntos =====
-const _verificarSesionOriginal = verificarSesion;
-verificarSesion = async function() {
-  await _verificarSesionOriginal();
+// ===== Inicialización principal =====
+document.addEventListener('DOMContentLoaded', async function() {
+  // 1. Verificar sesión (esto actualiza la UI y las variables globales)
+  await verificarSesion();
+  
+  // 2. Cargar feed (publicaciones no destacadas)
+  cargarPublicaciones();
+  
+  // 3. Cargar destacadas (si las hay)
+  cargarDestacadas();
+  
+  // 4. Cargar estadísticas
+  cargarEstadisticas();
+  
+  // 5. Si hay sesión activa, cargar widget de puntos
   if (SESION_ACTIVA) {
     cargarPuntosWidget();
   } else {
     document.getElementById('puntos-widget').style.display = 'none';
   }
-};
-
-// ===== Cargar todo al inicio =====
-document.addEventListener('DOMContentLoaded', async function() {
-  await verificarSesion();
-  cargarPublicaciones();
-  cargarDestacadas();
-  cargarEstadisticas();
 });
 </script>
 {% endblock %}

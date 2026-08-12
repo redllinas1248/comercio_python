@@ -33,7 +33,7 @@ def listar():
     db  = get_db()
     cur = db.connection.cursor()
 
-    condiciones = ["p.destacada = 0"]  # <--- EXCLUIR DESTACADAS POR DEFECTO
+    condiciones = ["p.destacada = 0"]  # Excluir destacadas por defecto
     params      = []
     if categoria_id:
         condiciones.append("p.categoria_id = %s")
@@ -42,7 +42,6 @@ def listar():
         condiciones.append("p.telefono = %s")
         params.append(telefono_filtro)
 
-    # Si se pide incluir destacadas (para algún uso especial), quitamos el filtro
     if incluir_destacadas:
         condiciones = [c for c in condiciones if c != "p.destacada = 0"]
 
@@ -327,7 +326,7 @@ def admin_lista():
     return jsonify(result)
 
 
-# ===== NUEVO ENDPOINT: PUBLICACIONES DESTACADAS =====
+# ===== ENDPOINT: PUBLICACIONES DESTACADAS =====
 @pub_bp.route('/destacadas', methods=['GET'])
 def destacadas():
     """Devuelve las publicaciones marcadas como destacadas (destacada=1)."""

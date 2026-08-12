@@ -37,7 +37,6 @@ async function api(url, method = 'GET', body = null) {
 }
 
 function imgUrl(ruta) {
-  // Si es URL completa (Cloudinary) la usa directo, si no agrega /static/
   if (!ruta) return '';
   return ruta.startsWith('http') ? ruta : '/static/' + ruta;
 }
@@ -56,12 +55,10 @@ function escapeHtml(str) {
 }
 
 function sanitizarId(val) {
-  // Solo permite números enteros para IDs
   return parseInt(val) || 0;
 }
 
 function sanitizarTel(tel) {
-  // Solo permite números, +, espacios y guiones
   return String(tel || '').replace(/[^0-9+\-\s]/g, '');
 }
 
@@ -80,7 +77,6 @@ function contactarWAEncoded(encodedTel, encodedText, pid) {
 
 function timeAgo(fechaStr) {
   if (!fechaStr) return '';
-  // MySQL devuelve fechas como "2026-08-06 20:44:19" — reemplazar espacio por T
   const fecha = new Date(String(fechaStr).replace(' ', 'T') + (String(fechaStr).includes('T') ? '' : 'Z'));
   const diff = Date.now() - fecha.getTime();
   if (isNaN(diff)) return fechaStr;
@@ -112,21 +108,26 @@ async function verificarSesion() {
     SESION_ACTIVA = true;
     _miTel = _yo.telefono;
     // Mostrar fab de publicar, ocultar fab de login
-    $('fab-pub')  && ($('fab-pub').style.display   = 'flex');
-    $('fab-login') && ($('fab-login').style.display = 'none');
-    $('visitor-banner') && ($('visitor-banner').style.display = 'none');
+    const fabPub = $('fab-pub');
+    const fabLogin = $('fab-login');
+    const visitorBanner = $('visitor-banner');
+    if (fabPub) fabPub.style.display = 'flex';
+    if (fabLogin) fabLogin.style.display = 'none';
+    if (visitorBanner) visitorBanner.style.display = 'none';
     document.querySelectorAll('.nav-auth').forEach(el => el.style.display = 'flex');
     document.querySelectorAll('.nav-guest').forEach(el => el.style.display = 'none');
     actualizarBadge();
     setInterval(actualizarBadge, 30000);
   } catch (_) {
     SESION_ACTIVA = false;
-    // Mostrar fab de login, ocultar fab de publicar
-    $('fab-pub')   && ($('fab-pub').style.display  = 'none');
-    $('fab-login') && ($('fab-login').style.display = 'flex');
-    $('visitor-banner') && ($('visitor-banner').style.display = 'flex');
-    // Ocultar links que requieren sesión en navbar
+    const fabPub = $('fab-pub');
+    const fabLogin = $('fab-login');
+    const visitorBanner = $('visitor-banner');
+    if (fabPub) fabPub.style.display = 'none';
+    if (fabLogin) fabLogin.style.display = 'flex';
+    if (visitorBanner) visitorBanner.style.display = 'flex';
     document.querySelectorAll('.nav-auth').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.nav-guest').forEach(el => el.style.display = 'flex');
   }
 }
 
@@ -498,50 +499,3 @@ document.addEventListener('DOMContentLoaded', async () => {
   await verificarSesion();
   cargarPublicaciones();
 });
-// ===== FUNCIONES PARA LAS NUEVAS SECCIONES DEL INICIO =====
-// (Estas funciones ya están en index.html, pero si quieres centralizarlas, puedes moverlas aquí)
-// Sin embargo, las dejamos en index.html para mantener la separación.
-// Solo agregamos un parche para que verificarSesion también cargue puntos.
-
-// Sobrescribir verificarSesion para incluir la carga de puntos
-const __verificarSesionOriginal = verificarSesion;
-verificarSesion = async function() {
-  await __verificarSesionOriginal();
-  if (SESION_ACTIVA && document.getElementById('puntos-widget')) {
-    try {
-      const data = await api('/api/auth/puntos');
-      const widget = document.getElementById('puntos-widget');
-      widget.style.display = 'block';
-      document.getElementById('pw-puntos').textContent = data.puntos;
-      document.getElementById('pw-pubs-hoy').textContent = data.pubs_hoy + ' / 2 publicaciones hoy';
-      const pct = Math.min((data.pubs_hoy / 2) * 100, 100);
-      document.getElementById('pw-barra').style.width = pct + '%';
-    } catch(e) {
-      // silencio
-    }
-  } else {
-    const widget = document.getElementById('puntos-widget');
-    if (widget) widget.style.display = 'none';
-  }
-};
-// Extensión para cargar puntos cuando la sesión está activa
-const _verificarSesionOriginal = verificarSesion;
-verificarSesion = async function() {
-  await _verificarSesionOriginal();
-  if (SESION_ACTIVA && document.getElementById('puntos-widget')) {
-    try {
-      const data = await api('/api/auth/puntos');
-      const widget = document.getElementById('puntos-widget');
-      widget.style.display = 'block';
-      document.getElementById('pw-puntos').textContent = data.puntos;
-      document.getElementById('pw-pubs-hoy').textContent = data.pubs_hoy + ' / 2 publicaciones hoy';
-      const pct = Math.min((data.pubs_hoy / 2) * 100, 100);
-      document.getElementById('pw-barra').style.width = pct + '%';
-    } catch(e) {
-      // silencio
-    }
-  } else {
-    const widget = document.getElementById('puntos-widget');
-    if (widget) widget.style.display = 'none';
-  }
-};
