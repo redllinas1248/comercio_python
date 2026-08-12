@@ -30,6 +30,15 @@
           <input id="df-cat" type="text" placeholder="Ej: Farmacias, Emergencias, Hospitales..." list="cats-list"/>
           <datalist id="cats-list"></datalist>
         </div>
+        <!-- NUEVO CAMPO TIPO -->
+        <div class="p-field" style="grid-column:span 1">
+          <label>Tipo</label>
+          <select id="df-tipo" class="select-field" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:.65rem .85rem;outline:none;">
+            <option value="servicios">🔧 Servicios</option>
+            <option value="emergencias">🚨 Emergencias</option>
+            <option value="general">📌 General</option>
+          </select>
+        </div>
         <div class="p-field" style="grid-column:span 3">
           <label>Nombre</label>
           <input id="df-nombre" type="text" placeholder="Ej: Farmacia Similar"/>
@@ -222,7 +231,7 @@ async function cargarAdminDir() {
     wrap.innerHTML = `
       <div class="admin-table-wrap">
         <table class="admin-table">
-          <thead><tr><th>Ico</th><th>Categoría</th><th>Nombre</th><th>Teléfono</th><th>Horario</th><th></th></tr></thead>
+          <thead><tr><th>Ico</th><th>Categoría</th><th>Nombre</th><th>Teléfono</th><th>Horario</th><th>Tipo</th><th></th></tr></thead>
           <tbody>
             ${dirItems.map(item => `
               <tr id="dir-row-${item.id}">
@@ -231,6 +240,7 @@ async function cargarAdminDir() {
                 <td>${escapeHtml(item.nombre)}</td>
                 <td>${escapeHtml(item.telefono || '—')}</td>
                 <td>${escapeHtml(item.horario  || '—')}</td>
+                <td>${escapeHtml(item.tipo || 'general')}</td>
                 <td class="admin-actions-cell">
                   <button class="admin-btn-rol" onclick="editarDir(${item.id})">✏️</button>
                   <button class="admin-btn-del" onclick="eliminarDir(${item.id})">🗑</button>
@@ -253,7 +263,8 @@ async function guardarDir() {
     telefono:  document.getElementById('df-tel').value.trim(),
     horario:   document.getElementById('df-horario').value.trim(),
     direccion: document.getElementById('df-dir').value.trim(),
-    orden:     0
+    orden:     0,
+    tipo:      document.getElementById('df-tipo').value
   };
   if (!payload.categoria || !payload.nombre) { toast('⚠️ Categoría y nombre son obligatorios'); return; }
 
@@ -279,6 +290,7 @@ function editarDir(id) {
   document.getElementById('df-tel').value     = item.telefono || '';
   document.getElementById('df-horario').value = item.horario  || '';
   document.getElementById('df-dir').value     = item.direccion|| '';
+  document.getElementById('df-tipo').value    = item.tipo     || 'general';
   document.getElementById('df-edit-id').value = id;
   document.getElementById('df-btn-txt').textContent = '💾 Guardar cambios';
   document.getElementById('dir-form').scrollIntoView({ behavior: 'smooth' });
@@ -288,6 +300,7 @@ function limpiarFormDir() {
   ['df-icono','df-cat','df-nombre','df-tel','df-horario','df-dir'].forEach(id => {
     document.getElementById(id).value = id === 'df-icono' ? '📍' : '';
   });
+  document.getElementById('df-tipo').value = 'general';
   document.getElementById('df-edit-id').value = '';
   document.getElementById('df-btn-txt').textContent = '➕ Agregar';
 }
