@@ -3,8 +3,9 @@ from db import get_db
 from security import get_current_user
 from werkzeug.utils import secure_filename
 import cloudinary.uploader
-import imghdr
 import os
+from PIL import Image
+import io
 
 views_bp = Blueprint('views', __name__)
 
@@ -162,11 +163,21 @@ def subir_logo():
     if size > MAX_SIZE:
         return jsonify({'error': 'La imagen excede el tamaño máximo de 2 MB.'}), 400
 
-    archivo.seek(0)
-    file_type = imghdr.what(archivo.stream)
-    if not file_type and extension != 'svg':
-        return jsonify({'error': 'El archivo no es una imagen válida.'}), 400
-    archivo.seek(0)
+    # Validar contenido real usando Pillow (excepto SVG que no es imagen raster)
+    if extension != 'svg':
+        try:
+            img_bytes = archivo.read()
+            Image.open(io.BytesIO(img_bytes)).verify()
+            archivo.seek(0)  # resetear puntero
+        except Exception:
+            return jsonify({'error': 'El archivo no es una imagen válida.'}), 400
+    else:
+        # Para SVG, validar que empiece con '<svg' o similar (simple)
+        archivo.seek(0)
+        contenido = archivo.read(1024).decode('utf-8', errors='ignore')
+        archivo.seek(0)
+        if not contenido.lstrip().startswith('<svg'):
+            return jsonify({'error': 'El archivo SVG no parece válido.'}), 400
 
     try:
         resultado = cloudinary.uploader.upload(
@@ -205,7 +216,6 @@ def emergencias():
     return render_template('emergencias.html')
 
 
-# ===== NUEVA RUTA: TRANSMISIONES EN VIVO =====
 @views_bp.route('/transmisiones')
 def transmisiones():
     return render_template('transmisiones.html')
