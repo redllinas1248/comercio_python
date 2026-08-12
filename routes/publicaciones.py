@@ -3,12 +3,13 @@ from flask import Blueprint, request, jsonify, session, current_app
 from werkzeug.utils import secure_filename
 from db import get_db
 from security import require_api_admin, get_current_user
+import cloudinary.uploader
+import cloudinary.api
 
 pub_bp = Blueprint('publicaciones', __name__, url_prefix='/api/publicaciones')
 
 
 def subir_cloudinary(archivo, carpeta='posts'):
-    """Sube un archivo a Cloudinary y devuelve la URL segura."""
     import cloudinary.uploader
     resultado = cloudinary.uploader.upload(
         archivo,
@@ -18,9 +19,16 @@ def subir_cloudinary(archivo, carpeta='posts'):
     return resultado['secure_url']
 
 
+def eliminar_cloudinary_archivo(public_id):
+    """Elimina un archivo de Cloudinary por su public_id."""
+    try:
+        cloudinary.uploader.destroy(public_id, resource_type="image")
+    except Exception:
+        pass  # No fallar si no se puede eliminar
+
+
 @pub_bp.route('', methods=['GET'])
 def listar():
-    """Lista publicaciones NO destacadas (feed principal)."""
     categoria_id    = request.args.get('categoria_id')
     telefono_filtro = request.args.get('telefono')
     incluir_destacadas = request.args.get('incluir_destacadas', 'false').lower() == 'true'
@@ -33,7 +41,7 @@ def listar():
     db  = get_db()
     cur = db.connection.cursor()
 
-    condiciones = ["p.destacada = 0"]  # Excluir destacadas por defecto
+    condiciones = ["p.destacada = 0"]
     params      = []
     if categoria_id:
         condiciones.append("p.categoria_id = %s")
@@ -144,7 +152,6 @@ def crear():
     db  = get_db()
     cur = db.connection.cursor()
 
-    # Verificar limite de 2 publicaciones en las ultimas 24 horas
     cur.execute(
         "SELECT COUNT(*) FROM publicaciones WHERE telefono = %s AND fecha >= NOW() - INTERVAL 24 HOUR",
         (telefono,)
@@ -161,7 +168,6 @@ def crear():
     db.connection.commit()
     pub_id = cur.lastrowid
 
-    # Sistema de puntos
     cur.execute("SELECT COUNT(*) FROM publicaciones WHERE telefono = %s", (telefono,))
     total_pubs = cur.fetchone()[0]
     if total_pubs % 2 == 0:
@@ -172,7 +178,6 @@ def crear():
         )
         db.connection.commit()
 
-    # Subir imágenes a Cloudinary
     for img in request.files.getlist('imagenes'):
         if img and img.filename:
             ext = img.filename.rsplit('.', 1)[-1].lower()
@@ -184,9 +189,8 @@ def crear():
                         (pub_id, url)
                     )
                 except Exception as e:
-                    print(f"Error subiendo imagen: {e}")
+                    current_app.logger.error(f"Error subiendo imagen: {e}")
 
-    # Subir video a Cloudinary
     for vid in request.files.getlist('videos'):
         if vid and vid.filename:
             ext = vid.filename.rsplit('.', 1)[-1].lower()
@@ -198,7 +202,7 @@ def crear():
                         (pub_id, url)
                     )
                 except Exception as e:
-                    print(f"Error subiendo video: {e}")
+                    current_app.logger.error(f"Error subiendo video: {e}")
 
     db.connection.commit()
     cur.close()
@@ -223,6 +227,27 @@ def eliminar(pub_id):
         cur.close()
         return jsonify({'error': 'Sin permiso'}), 403
 
+    # Obtener rutas de imágenes y videos para eliminarlos de Cloudinary
+    cur.execute("SELECT ruta FROM publicaciones_imagenes WHERE publicacion_id = %s", (pub_id,))
+    imagenes = [r[0] for r in cur.fetchall()]
+    cur.execute("SELECT ruta FROM publicaciones_videos WHERE publicacion_id = %s", (pub_id,))
+    videos = [r[0] for r in cur.fetchall()]
+
+    # Eliminar archivos de Cloudinary
+    for ruta in imagenes + videos:
+        if ruta and ruta.startswith('http'):
+            try:
+                # Extraer public_id de la URL de Cloudinary
+                # Ejemplo: https://res.cloudinary.com/.../comercio/imagenes/abcd.jpg
+                public_id = ruta.split('/comercio/')[1].split('.')[0] if '/comercio/' in ruta else None
+                if public_id:
+                    cloudinary.uploader.destroy(f"comercio/{public_id}", resource_type="image")
+            except Exception as e:
+                current_app.logger.error(f"Error eliminando archivo de Cloudinary: {e}")
+
+    # Eliminar registros de la BD
+    cur.execute("DELETE FROM publicaciones_imagenes WHERE publicacion_id = %s", (pub_id,))
+    cur.execute("DELETE FROM publicaciones_videos WHERE publicacion_id = %s", (pub_id,))
     cur.execute("DELETE FROM publicaciones WHERE id = %s", (pub_id,))
     db.connection.commit()
     cur.close()
@@ -326,10 +351,8 @@ def admin_lista():
     return jsonify(result)
 
 
-# ===== ENDPOINT: PUBLICACIONES DESTACADAS =====
 @pub_bp.route('/destacadas', methods=['GET'])
 def destacadas():
-    """Devuelve las publicaciones marcadas como destacadas (destacada=1)."""
     db = get_db()
     cur = db.connection.cursor()
     cur.execute("""

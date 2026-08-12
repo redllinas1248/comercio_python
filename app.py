@@ -2,9 +2,17 @@ from flask import Flask, request, jsonify
 from security import validate_csrf
 from config import Config, init_cloudinary
 from db import init_db
+import logging
 
 app = Flask(__name__)
 app.config.from_object(Config)
+
+# Configurar logging para producción
+if not app.debug:
+    app.logger.setLevel(logging.ERROR)
+    handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter('[%(asctime)s] %(levelname)s: %(message)s'))
+    app.logger.addHandler(handler)
 
 # En producción los secretos deben existir como variables de entorno.
 _REQUIRED_SECRETS = (
@@ -40,6 +48,16 @@ def security_headers(response):
     response.headers.setdefault('X-Frame-Options', 'SAMEORIGIN')
     response.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
     response.headers.setdefault('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+    # CSP mejorado (permite Cloudinary, YouTube, Google Fonts)
+    response.headers['Content-Security-Policy'] = (
+        "default-src 'self'; "
+        "img-src 'self' data: https://res.cloudinary.com; "
+        "script-src 'self' 'unsafe-inline' https://www.youtube.com; "
+        "frame-src https://www.youtube.com; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
+        "connect-src 'self';"
+    )
     if request.is_secure:
         response.headers.setdefault('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
     return response

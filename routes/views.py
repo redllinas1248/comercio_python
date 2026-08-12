@@ -1,8 +1,10 @@
-from flask import Blueprint, render_template, redirect, url_for, request, jsonify
+from flask import Blueprint, render_template, redirect, url_for, request, jsonify, current_app
 from db import get_db
 from security import get_current_user
 from werkzeug.utils import secure_filename
 import cloudinary.uploader
+import imghdr
+import os
 
 views_bp = Blueprint('views', __name__)
 
@@ -27,7 +29,6 @@ def _config_value(clave, default=None):
 
 @views_bp.app_context_processor
 def inject_site_config():
-    """Variables disponibles para todas las plantillas."""
     db = get_db()
     cur = db.connection.cursor()
     try:
@@ -74,7 +75,6 @@ def admin_required(f):
 
 @views_bp.route('/')
 def index():
-    # Registrar una visita en el día actual.
     db = get_db()
     cur = db.connection.cursor()
     try:
@@ -144,6 +144,7 @@ def subir_logo():
     if not archivo or not archivo.filename:
         return jsonify({'error': 'Selecciona una imagen.'}), 400
 
+    # Validar extensión
     extension = (
         secure_filename(archivo.filename).rsplit('.', 1)[-1].lower()
         if '.' in archivo.filename else ''
@@ -154,6 +155,21 @@ def subir_logo():
         return jsonify({
             'error': 'Formato no permitido. Usa PNG, JPG, JPEG, GIF, WEBP o SVG.'
         }), 400
+
+    # Validar tamaño máximo (2 MB)
+    MAX_SIZE = 2 * 1024 * 1024
+    archivo.seek(0, os.SEEK_END)
+    size = archivo.tell()
+    archivo.seek(0)
+    if size > MAX_SIZE:
+        return jsonify({'error': 'La imagen excede el tamaño máximo de 2 MB.'}), 400
+
+    # Validar contenido real (MIME)
+    archivo.seek(0)
+    file_type = imghdr.what(archivo.stream)
+    if not file_type and extension != 'svg':
+        return jsonify({'error': 'El archivo no es una imagen válida.'}), 400
+    archivo.seek(0)
 
     try:
         resultado = cloudinary.uploader.upload(
@@ -177,8 +193,9 @@ def subir_logo():
         cur.close()
 
         return jsonify({'ok': True, 'logo_url': logo_url})
-    except Exception:
-        return jsonify({'error': 'No se pudo subir el logo'}), 500
+    except Exception as e:
+        current_app.logger.error(f"Error subiendo logo: {e}")
+        return jsonify({'error': 'No se pudo subir el logo. Intenta nuevamente.'}), 500
 
 
 @views_bp.route('/servicios')
@@ -191,27 +208,23 @@ def emergencias():
     return render_template('emergencias.html')
 
 
-# ===== NUEVO ENDPOINT: ESTADÍSTICAS PÚBLICAS =====
 @views_bp.route('/api/estadisticas', methods=['GET'])
 def estadisticas():
-    """Devuelve total de usuarios, publicaciones de hoy y visitas totales."""
     db = get_db()
     cur = db.connection.cursor()
     try:
-        # Total de usuarios
         cur.execute("SELECT COUNT(*) FROM usuarios")
         total_usuarios = cur.fetchone()[0]
 
-        # Publicaciones de hoy (últimas 24h)
         cur.execute("SELECT COUNT(*) FROM publicaciones WHERE fecha >= NOW() - INTERVAL 24 HOUR")
         pubs_hoy = cur.fetchone()[0]
 
-        # Visitas totales
         cur.execute("SELECT COALESCE(SUM(total), 0) FROM visitas")
         visitas = int(cur.fetchone()[0] or 0)
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        current_app.logger.error(f"Error en estadísticas: {e}")
+        return jsonify({'error': 'Error interno'}), 500
     finally:
         cur.close()
 
