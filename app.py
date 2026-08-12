@@ -1,20 +1,27 @@
+import os
+import logging
 from flask import Flask, request, jsonify
 from security import validate_csrf
 from config import Config, init_cloudinary
 from db import init_db
-import logging
 
 app = Flask(__name__)
 app.config.from_object(Config)
 
-# Configurar logging para producción
+# Configurar logging
 if not app.debug:
     app.logger.setLevel(logging.ERROR)
     handler = logging.StreamHandler()
     handler.setFormatter(logging.Formatter('[%(asctime)s] %(levelname)s: %(message)s'))
     app.logger.addHandler(handler)
 
-# En producción los secretos deben existir como variables de entorno.
+# Manejador de errores global
+@app.errorhandler(Exception)
+def handle_exception(e):
+    app.logger.error(f"Error no controlado: {e}", exc_info=True)
+    return jsonify({'error': 'Error interno del servidor'}), 500
+
+# Verificar variables de entorno obligatorias
 _REQUIRED_SECRETS = (
     'SECRET_KEY',
     'MYSQL_HOST',
@@ -36,7 +43,6 @@ def protect_api_with_csrf():
         return None
     if request.method in ('GET', 'HEAD', 'OPTIONS'):
         return None
-    # Todas las operaciones que cambian estado deben llevar token CSRF.
     if not validate_csrf():
         return jsonify({'error': 'Token CSRF inválido o ausente'}), 403
     return None
@@ -48,7 +54,6 @@ def security_headers(response):
     response.headers.setdefault('X-Frame-Options', 'SAMEORIGIN')
     response.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
     response.headers.setdefault('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
-    # CSP mejorado (permite Cloudinary, YouTube, Google Fonts)
     response.headers['Content-Security-Policy'] = (
         "default-src 'self'; "
         "img-src 'self' data: https://res.cloudinary.com; "
@@ -84,4 +89,5 @@ app.register_blueprint(dir_bp)
 app.register_blueprint(views_bp)
 
 if __name__ == '__main__':
-    app.run(debug=False, host='0.0.0.0', port=5000)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(debug=False, host='0.0.0.0', port=port)
