@@ -9,14 +9,20 @@
     <button class="admin-tab active" onclick="setAdminTab('pubs', this)">Publicaciones</button>
     <button class="admin-tab" onclick="setAdminTab('users', this)">Usuarios</button>
     <button class="admin-tab" onclick="setAdminTab('directorio', this)">Directorio</button>
+    <button class="admin-tab" onclick="setAdminTab('config', this)">Configuración</button>
   </div>
 
+  <!-- ===== TAB PUBLICACIONES ===== -->
   <div id="admin-pubs">
     <div id="pubs-wrap"></div>
   </div>
+
+  <!-- ===== TAB USUARIOS ===== -->
   <div id="admin-users" style="display:none">
     <div id="users-wrap"></div>
   </div>
+
+  <!-- ===== TAB DIRECTORIO ===== -->
   <div id="admin-directorio" style="display:none">
     <div class="dir-admin-form" id="dir-form">
       <h3 class="p-section-title" style="margin-bottom:.75rem">Agregar entrada</h3>
@@ -30,7 +36,7 @@
           <input id="df-cat" type="text" placeholder="Ej: Farmacias, Emergencias, Hospitales..." list="cats-list"/>
           <datalist id="cats-list"></datalist>
         </div>
-        <!-- NUEVO CAMPO TIPO -->
+        <!-- Campo TIPO -->
         <div class="p-field" style="grid-column:span 1">
           <label>Tipo</label>
           <select id="df-tipo" class="select-field" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:.65rem .85rem;outline:none;">
@@ -64,18 +70,49 @@
     </div>
     <div id="dir-admin-wrap" style="margin-top:1rem"></div>
   </div>
+
+  <!-- ===== TAB CONFIGURACIÓN (NUEVO) ===== -->
+  <div id="admin-config" style="display:none">
+    <div class="admin-config-card">
+      <p class="admin-config-help">
+        Sube un logo personalizado para el banner superior de tu sitio. 
+        Se mostrará en la parte de arriba de todas las páginas.
+      </p>
+      
+      <div class="logo-config-preview" id="logo-preview-container">
+        <img src="{{ logo_url }}" alt="Logo actual" id="logo-preview-img" />
+      </div>
+
+      <form id="logo-form" class="logo-upload-form" enctype="multipart/form-data">
+        <label class="logo-file-label p-btn-save" style="background:var(--bg3);color:var(--text);border:1px solid var(--border);cursor:pointer;padding:.6rem 1rem;border-radius:10px;display:inline-flex;align-items:center;gap:.5rem;">
+          📁 Seleccionar imagen
+          <input type="file" name="logo" accept="image/*" style="display:none" onchange="mostrarNombreArchivo(this)" />
+        </label>
+        <span class="logo-file-name" id="logo-file-name">Ningún archivo seleccionado</span>
+        <button type="button" class="p-btn-save" id="btn-subir-logo" onclick="subirLogo()">
+          <span class="btn-text">Actualizar Logo</span>
+          <div class="spinner-btn"></div>
+        </button>
+      </form>
+    </div>
+  </div>
+
 </div>
 
 <script>
+// ===== FUNCIONES ADMIN =====
 function setAdminTab(tab, el) {
   document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
   document.getElementById('admin-pubs').style.display        = tab === 'pubs'       ? 'block' : 'none';
   document.getElementById('admin-users').style.display       = tab === 'users'      ? 'block' : 'none';
   document.getElementById('admin-directorio').style.display  = tab === 'directorio' ? 'block' : 'none';
+  document.getElementById('admin-config').style.display      = tab === 'config'     ? 'block' : 'none';
+  
   if (tab === 'pubs')       cargarAdminPubs();
   if (tab === 'users')      cargarAdminUsers();
   if (tab === 'directorio') cargarAdminDir();
+  // No necesitamos cargar nada para 'config' porque es estático
 }
 
 async function cargarAdminPubs() {
@@ -161,12 +198,10 @@ async function cargarAdminUsers() {
 }
 
 async function toggleDestacada(id) {
-  // Checar si ya está destacada revisando la estrella
   const star   = document.getElementById(`dest-star-${id}`);
   const activa = star && star.style.opacity === '1';
   try {
     await api(`/api/publicaciones/${id}/destacar`, 'POST', { destacada: !activa });
-    // Apagar todas las estrellas
     document.querySelectorAll('[id^="dest-star-"]').forEach(s => {
       s.style.opacity = '0.3';
       s.title = '';
@@ -219,7 +254,6 @@ async function cargarAdminDir() {
     const grupos = await api('/api/directorio');
     dirItems = Object.values(grupos).flat();
 
-    // Llenar datalist de categorías
     const cats = [...new Set(Object.keys(grupos))];
     document.getElementById('cats-list').innerHTML = cats.map(c => `<option value="${c}">`).join('');
 
@@ -313,6 +347,61 @@ async function eliminarDir(id) {
     dirItems = dirItems.filter(i => i.id !== id);
     toast('🗑 Eliminado');
   } catch(e) { toast(e.message); }
+}
+
+// ===== CONFIGURACIÓN LOGO (NUEVO) =====
+function mostrarNombreArchivo(input) {
+  const fileName = input.files[0]?.name || 'Ningún archivo seleccionado';
+  document.getElementById('logo-file-name').textContent = fileName;
+}
+
+async function subirLogo() {
+  const input = document.querySelector('input[name="logo"]');
+  if (!input.files || !input.files[0]) {
+    toast('⚠️ Selecciona una imagen primero');
+    return;
+  }
+
+  const btn = document.getElementById('btn-subir-logo');
+  btn.classList.add('loading');
+  btn.disabled = true;
+
+  const formData = new FormData();
+  formData.append('logo', input.files[0]);
+
+  try {
+    const csrf = await getCsrfToken();
+    const res = await fetch('/admin/logo', {
+      method: 'POST',
+      body: formData,
+      credentials: 'include',
+      headers: { 'X-CSRF-Token': csrf }
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al subir el logo');
+    
+    // Actualizar la vista previa
+    const preview = document.getElementById('logo-preview-img');
+    if (data.logo_url) {
+      preview.src = data.logo_url;
+    } else {
+      // Si no devuelve URL, recargar la página para actualizar el contexto
+      toast('✅ Logo actualizado. Recargando...');
+      setTimeout(() => location.reload(), 800);
+      return;
+    }
+    
+    toast('✅ Logo actualizado correctamente');
+    // Limpiar el input para que se pueda volver a seleccionar el mismo archivo
+    input.value = '';
+    document.getElementById('logo-file-name').textContent = 'Ningún archivo seleccionado';
+    
+  } catch(e) {
+    toast('Error: ' + e.message);
+  } finally {
+    btn.classList.remove('loading');
+    btn.disabled = false;
+  }
 }
 </script>
 {% endblock %}
