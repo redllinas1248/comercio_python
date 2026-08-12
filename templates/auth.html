@@ -38,7 +38,6 @@
       overflow: hidden;
     }
 
-    /* Fondo animado con puntos */
     .bg-dots {
       position: fixed; inset: 0; z-index: 0;
       background-image: radial-gradient(circle, rgba(56,189,248,.12) 1px, transparent 1px);
@@ -51,7 +50,6 @@
     }
     @keyframes drift { to { background-position: 28px 28px; } }
 
-    /* Tarjeta principal */
     .card {
       position: relative; z-index: 1;
       width: 100%; max-width: 420px;
@@ -68,7 +66,6 @@
       to   { opacity:1; transform: translateY(0); }
     }
 
-    /* Logo / título */
     .brand {
       text-align: center;
       margin-bottom: 2rem;
@@ -97,7 +94,6 @@
       margin-top: .25rem;
     }
 
-    /* Tabs */
     .tabs {
       display: flex;
       background: var(--bg3);
@@ -125,7 +121,6 @@
       box-shadow: 0 1px 4px rgba(0,0,0,.3);
     }
 
-    /* Formularios */
     .form { display: none; flex-direction: column; gap: 1rem; }
     .form.visible { display: flex; animation: fadeIn .25s ease both; }
     @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
@@ -139,7 +134,11 @@
       letter-spacing: .06em;
     }
 
-    .input-wrap { position: relative; }
+    .input-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
     .input-wrap .ico {
       position: absolute; left: 12px; top: 50%;
       transform: translateY(-50%);
@@ -166,57 +165,26 @@
     }
     .input-wrap input.error { border-color: var(--error); }
 
-    /* PIN visual */
-    .pin-wrap { display: flex; gap: .5rem; justify-content: center; }
-    .pin-dot {
-      width: 44px; height: 52px;
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.4rem;
-      color: var(--text);
-      transition: border-color .15s, box-shadow .15s;
-    }
-    .pin-dot.filled {
-      border-color: var(--accent2);
-      box-shadow: 0 0 0 2px rgba(14,165,233,.2);
-    }
-    .pin-dot.active {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(56,189,248,.25);
-      animation: pulse .6s ease infinite alternate;
-    }
-    @keyframes pulse { to { box-shadow: 0 0 0 4px rgba(56,189,248,.15); } }
-    #pin-hidden {
-      position: absolute; opacity: 0; pointer-events: none; width: 1px; height: 1px;
-    }
-
-    /* Teclado numérico */
-    .numpad {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: .4rem;
-      margin-top: .25rem;
-    }
-    .numpad button {
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      color: var(--text);
-      font-family: 'DM Sans', sans-serif;
-      font-size: 1.1rem;
-      font-weight: 500;
-      padding: .85rem;
+    /* Botón mostrar/ocultar PIN */
+    .toggle-pin {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--muted);
       cursor: pointer;
-      transition: background .12s, transform .08s;
-      -webkit-tap-highlight-color: transparent;
+      padding: 4px;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.6;
+      transition: opacity .2s;
     }
-    .numpad button:active { background: var(--bg); transform: scale(.96); }
-    .numpad button.del { font-size: .95rem; color: var(--muted); }
-    .numpad button:empty { visibility: hidden; }
+    .toggle-pin:hover { opacity: 1; }
 
-    /* Botón principal */
     .btn-submit {
       width: 100%;
       background: var(--accent2);
@@ -249,7 +217,6 @@
     .btn-submit.loading .btn-text { display: none; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* Mensajes */
     .msg {
       font-size: .83rem;
       padding: .65rem .85rem;
@@ -261,7 +228,6 @@
     .msg.error { background: rgba(248,113,113,.1); color: var(--error); border: 1px solid rgba(248,113,113,.2); }
     .msg.ok    { background: rgba(52,211,153,.1); color: var(--success); border: 1px solid rgba(52,211,153,.2); }
 
-    /* Footer hint */
     .hint {
       text-align: center;
       font-size: .78rem;
@@ -316,16 +282,14 @@
 
       <div class="field">
         <label>PIN de acceso</label>
-        <div class="pin-wrap" onclick="document.getElementById('pin-hidden-l').focus()">
-          <div class="pin-dot" id="ld0"></div>
-          <div class="pin-dot" id="ld1"></div>
-          <div class="pin-dot" id="ld2"></div>
-          <div class="pin-dot" id="ld3"></div>
+        <div class="input-wrap">
+          <span class="ico">🔑</span>
+          <input id="l-pin" type="password" placeholder="4 dígitos" maxlength="4"
+                 inputmode="numeric" autocomplete="current-password"/>
+          <button type="button" class="toggle-pin" onclick="togglePinVisibility('l-pin', this)" title="Mostrar/ocultar PIN">
+            👁️
+          </button>
         </div>
-        <input id="pin-hidden-l" type="password" inputmode="numeric"
-               maxlength="4" autocomplete="current-password"
-               oninput="updatePinDots('l')" style="position:absolute;opacity:0;pointer-events:none;width:1px;height:1px"/>
-        <div class="numpad" id="numpad-l"></div>
       </div>
 
       <div class="msg" id="msg-login"></div>
@@ -388,16 +352,14 @@
 
       <div class="field">
         <label>Crea tu PIN (4 dígitos)</label>
-        <div class="pin-wrap" onclick="document.getElementById('pin-hidden-r').focus()">
-          <div class="pin-dot" id="rd0"></div>
-          <div class="pin-dot" id="rd1"></div>
-          <div class="pin-dot" id="rd2"></div>
-          <div class="pin-dot" id="rd3"></div>
+        <div class="input-wrap">
+          <span class="ico">🔑</span>
+          <input id="r-pin" type="password" placeholder="4 dígitos" maxlength="4"
+                 inputmode="numeric" autocomplete="new-password"/>
+          <button type="button" class="toggle-pin" onclick="togglePinVisibility('r-pin', this)" title="Mostrar/ocultar PIN">
+            👁️
+          </button>
         </div>
-        <input id="pin-hidden-r" type="password" inputmode="numeric"
-               maxlength="4" autocomplete="new-password"
-               oninput="updatePinDots('r')" style="position:absolute;opacity:0;pointer-events:none;width:1px;height:1px"/>
-        <div class="numpad" id="numpad-r"></div>
       </div>
 
       <div class="msg" id="msg-registro"></div>
@@ -413,7 +375,6 @@
     </p>
   </div>
 
-  <!-- app.js define getCsrfToken(); esta página no extiende base.html, así que hay que cargarlo aquí -->
   <script src="/static/js/app.js"></script>
   <script>
     // ===== Tabs =====
@@ -428,35 +389,20 @@
       clearMsg('login'); clearMsg('registro');
     }
 
-    // ===== Teclado numérico =====
-    function buildNumpad(prefix) {
-      const pad = document.getElementById('numpad-' + prefix);
-      const keys = ['1','2','3','4','5','6','7','8','9','','0','⌫'];
-      pad.innerHTML = keys.map(k => {
-        if (!k) return '<button disabled style="visibility:hidden"></button>';
-        const cls = k === '⌫' ? 'del' : '';
-        return `<button class="${cls}" onclick="numpadPress('${prefix}','${k}')">${k}</button>`;
-      }).join('');
-    }
-
-    function numpadPress(prefix, key) {
-      const inp = document.getElementById('pin-hidden-' + prefix);
-      if (key === '⌫') {
-        inp.value = inp.value.slice(0, -1);
-      } else if (inp.value.length < 4) {
-        inp.value += key;
+    // ===== Toggle PIN visibility =====
+    function togglePinVisibility(inputId, btn) {
+      const input = document.getElementById(inputId);
+      if (!input) return;
+      if (input.type === 'password') {
+        input.type = 'text';
+        btn.textContent = '🙈';
+        btn.title = 'Ocultar PIN';
+      } else {
+        input.type = 'password';
+        btn.textContent = '👁️';
+        btn.title = 'Mostrar PIN';
       }
-      updatePinDots(prefix);
-    }
-
-    function updatePinDots(prefix) {
-      const val = document.getElementById('pin-hidden-' + prefix).value;
-      for (let i = 0; i < 4; i++) {
-        const dot = document.getElementById(prefix + 'd' + i);
-        dot.textContent = val[i] ? '●' : '';
-        dot.classList.toggle('filled', i < val.length);
-        dot.classList.toggle('active', i === val.length && i < 4);
-      }
+      input.focus();
     }
 
     // ===== Mensajes =====
@@ -481,7 +427,7 @@
     async function doLogin() {
       clearMsg('login');
       const telefono = document.getElementById('l-tel').value.trim();
-      const pin = document.getElementById('pin-hidden-l').value;
+      const pin = document.getElementById('l-pin').value.trim();
 
       if (!telefono) { showMsg('login', 'Ingresa tu teléfono', 'error'); return; }
       if (pin.length < 4) { showMsg('login', 'Ingresa tu PIN de 4 dígitos', 'error'); return; }
@@ -497,7 +443,6 @@
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error al iniciar sesión');
-        // Guardar sesión en localStorage como respaldo
         localStorage.setItem('usr_tel', telefono);
         localStorage.setItem('usr_nombre', data.usuario?.nombre || '');
         localStorage.setItem('usr_rol', data.usuario?.rol || 'usuario');
@@ -505,16 +450,10 @@
         setTimeout(() => location.href = '/', 900);
       } catch(e) {
         showMsg('login', e.message, 'error');
-        // Sacudir los dots de error
-        for(let i=0;i<4;i++) {
-          const d = document.getElementById('ld'+i);
-          d.style.animation = 'none';
-          d.style.borderColor = 'var(--error)';
-        }
+        document.getElementById('l-pin').value = '';
+        document.getElementById('l-pin').classList.add('error');
         setTimeout(() => {
-          document.getElementById('pin-hidden-l').value = '';
-          updatePinDots('l');
-          for(let i=0;i<4;i++) document.getElementById('ld'+i).style.borderColor = '';
+          document.getElementById('l-pin').classList.remove('error');
         }, 800);
       } finally {
         setLoading('btn-login', false);
@@ -526,7 +465,7 @@
       clearMsg('registro');
       const nombre   = document.getElementById('r-nombre').value.trim();
       const telefono = document.getElementById('r-tel').value.trim();
-      const pin      = document.getElementById('pin-hidden-r').value;
+      const pin      = document.getElementById('r-pin').value.trim();
 
       if (!nombre)            { showMsg('registro', 'Ingresa tu nombre', 'error'); return; }
       if (!telefono)          { showMsg('registro', 'Ingresa tu teléfono', 'error'); return; }
@@ -553,6 +492,11 @@
         setTimeout(() => location.href = '/', 900);
       } catch(e) {
         showMsg('registro', e.message, 'error');
+        document.getElementById('r-pin').value = '';
+        document.getElementById('r-pin').classList.add('error');
+        setTimeout(() => {
+          document.getElementById('r-pin').classList.remove('error');
+        }, 800);
       } finally {
         setLoading('btn-registro', false);
       }
@@ -567,11 +511,6 @@
     });
 
     // ===== Init =====
-    buildNumpad('l');
-    buildNumpad('r');
-    updatePinDots('l');
-    updatePinDots('r');
-
     // Si ya hay sesión, redirigir
     fetch('/api/auth/yo', { credentials: 'include' })
       .then(r => { if (r.ok) location.href = '/'; })
