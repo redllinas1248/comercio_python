@@ -26,28 +26,7 @@
   </div>
 </div>
 
-<!-- ===== 1. TRANSMISIÓN EN VIVO ===== -->
-<div class="youtube-live-wrap">
-  <div class="youtube-live-header">
-    <span class="youtube-live-dot"></span>
-    <div class="youtube-live-info">
-      <span class="youtube-live-title">Milenio Noticias — En vivo</span>
-      <span class="youtube-live-sub">Transmisión gratuita de YouTube</span>
-    </div>
-  </div>
-  <div class="youtube-live-video">
-    <iframe
-      src="https://www.youtube.com/embed/oPy8a-TCjzA"
-      title="Milenio Noticias — Transmisión en vivo"
-      frameborder="0"
-      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-      referrerpolicy="strict-origin-when-cross-origin"
-      allowfullscreen>
-    </iframe>
-  </div>
-</div>
-
-<!-- ===== 2. CARRUSEL DE DESTACADAS ===== -->
+<!-- ===== 1. CARRUSEL DE DESTACADAS ===== -->
 <div id="destacadas-wrap" style="margin-bottom:1rem;">
   <div class="destacadas-header">
     <span class="destacadas-icon">⭐</span>
@@ -58,7 +37,7 @@
   </div>
 </div>
 
-<!-- ===== 3. CONTADORES DE ESTADÍSTICAS ===== -->
+<!-- ===== 2. CONTADORES DE ESTADÍSTICAS ===== -->
 <div class="stats-bar" id="stats-bar">
   <div class="stat-item">
     <span class="stat-icon">👥</span>
@@ -77,7 +56,7 @@
   </div>
 </div>
 
-<!-- ===== 4. WIDGET DE PUNTOS (solo si está logueado) ===== -->
+<!-- ===== 3. WIDGET DE PUNTOS (solo si está logueado) ===== -->
 <div id="puntos-widget" style="display:none; margin-bottom:1rem;">
   <div class="puntos-section" style="border-radius:var(--radius);padding:1rem;background:var(--bg2);border:1px solid var(--border);">
     <div class="puntos-wrap">
@@ -104,7 +83,7 @@
   </div>
 </div>
 
-<!-- ===== 5. BOTONES DE SECCIONES ===== -->
+<!-- ===== 4. BOTONES DE SECCIONES ===== -->
 <div class="secciones-btns">
   <a href="/servicios" class="seccion-btn seccion-servicios">
     <span class="seccion-ico">🔧</span>
@@ -128,7 +107,7 @@
   </a>
 </div>
 
-<!-- ===== 6. FEED DE PUBLICACIONES ===== -->
+<!-- ===== 5. FEED DE PUBLICACIONES ===== -->
 <div id="feed" class="feed"></div>
 
 <!-- MODALES -->
@@ -290,21 +269,12 @@ async function cargarPuntosWidget() {
   }
 }
 
-// ===== Inicialización principal =====
+// ===== Inicialización =====
 document.addEventListener('DOMContentLoaded', async function() {
-  // 1. Verificar sesión (esto actualiza la UI y las variables globales)
   await verificarSesion();
-  
-  // 2. Cargar feed (publicaciones no destacadas)
   cargarPublicaciones();
-  
-  // 3. Cargar destacadas (si las hay)
   cargarDestacadas();
-  
-  // 4. Cargar estadísticas
   cargarEstadisticas();
-  
-  // 5. Si hay sesión activa, cargar widget de puntos
   if (SESION_ACTIVA) {
     cargarPuntosWidget();
   } else {

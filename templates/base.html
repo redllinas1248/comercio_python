@@ -29,12 +29,15 @@
       <span>Inicio</span>
     </a>
     <div class="nav-links">
-      <span class="visit-counter" title="Visitas totales">
-        <svg width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-          <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="2.5"/>
+      <!-- NUEVO BOTÓN TRANSMISIONES EN VIVO -->
+      <a href="/transmisiones" class="nav-link nav-transmisiones" title="Transmisiones en vivo">
+        <svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <polygon points="23 7 16 12 23 17 23 7"/>
+          <rect x="1" y="5" width="15" height="14" rx="2"/>
         </svg>
-        <span>{{ "{:,}".format(visitas_totales).replace(",", ".") }}</span>
-      </span>
+        <span class="live-dot"></span>
+      </a>
+
       <a href="/buscar" class="nav-link" title="Buscar">
         <svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
           <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -72,7 +75,6 @@
 
   <div id="toast" class="toast hidden"></div>
 
-  <!-- app.js al final del body, antes de cualquier script inline -->
   <script src="/static/js/app.js"></script>
   <script>
     if ('serviceWorker' in navigator) {

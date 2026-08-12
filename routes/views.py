@@ -144,7 +144,6 @@ def subir_logo():
     if not archivo or not archivo.filename:
         return jsonify({'error': 'Selecciona una imagen.'}), 400
 
-    # Validar extensión
     extension = (
         secure_filename(archivo.filename).rsplit('.', 1)[-1].lower()
         if '.' in archivo.filename else ''
@@ -156,7 +155,6 @@ def subir_logo():
             'error': 'Formato no permitido. Usa PNG, JPG, JPEG, GIF, WEBP o SVG.'
         }), 400
 
-    # Validar tamaño máximo (2 MB)
     MAX_SIZE = 2 * 1024 * 1024
     archivo.seek(0, os.SEEK_END)
     size = archivo.tell()
@@ -164,7 +162,6 @@ def subir_logo():
     if size > MAX_SIZE:
         return jsonify({'error': 'La imagen excede el tamaño máximo de 2 MB.'}), 400
 
-    # Validar contenido real (MIME)
     archivo.seek(0)
     file_type = imghdr.what(archivo.stream)
     if not file_type and extension != 'svg':
@@ -206,6 +203,12 @@ def servicios():
 @views_bp.route('/emergencias')
 def emergencias():
     return render_template('emergencias.html')
+
+
+# ===== NUEVA RUTA: TRANSMISIONES EN VIVO =====
+@views_bp.route('/transmisiones')
+def transmisiones():
+    return render_template('transmisiones.html')
 
 
 @views_bp.route('/api/estadisticas', methods=['GET'])

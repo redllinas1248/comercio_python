@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="dir-header">
+  <button class="btn-back" onclick="history.back()">
+    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+      <polyline points="15 18 9 12 15 6"/>
+    </svg> Volver
+  </button>
+  <h2 class="dir-title">📺 Transmisiones en vivo</h2>
+  <p class="dir-sub">Canales y eventos en vivo de José Azueta y la región</p>
+</div>
+
+<div id="transmisiones-wrap">
+  <!-- Contenido por ahora estático, luego puedes hacerlo dinámico -->
+  <div class="dir-grupo">
+    <div class="dir-grupo-titulo">📡 Canales locales</div>
+    <div class="dir-lista">
+      <div class="dir-item">
+        <div class="dir-ico">📺</div>
+        <div class="dir-info">
+          <div class="dir-nombre">Milenio Noticias</div>
+          <div class="dir-dato">🔴 En vivo las 24 horas</div>
+        </div>
+        <a href="https://www.youtube.com/embed/oPy8a-TCjzA" target="_blank" class="dir-tel-btn" style="background:rgba(239,68,68,.15);color:#ef4444;border-color:rgba(239,68,68,.3);">
+          <span class="live-dot" style="display:inline-block;width:8px;height:8px;background:#ef4444;border-radius:50%;margin-right:4px;animation:pulse-dot 1.2s ease-in-out infinite;"></span>
+          Ver ahora
+        </a>
+      </div>
+      <div class="dir-item">
+        <div class="dir-ico">📻</div>
+        <div class="dir-info">
+          <div class="dir-nombre">Radio Comunitaria José Azueta</div>
+          <div class="dir-dato">🔴 Transmisión en vivo</div>
+        </div>
+        <a href="#" class="dir-tel-btn" style="background:rgba(239,68,68,.15);color:#ef4444;border-color:rgba(239,68,68,.3);">
+          <span class="live-dot" style="display:inline-block;width:8px;height:8px;background:#ef4444;border-radius:50%;margin-right:4px;animation:pulse-dot 1.2s ease-in-out infinite;"></span>
+          Escuchar
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="dir-grupo">
+    <div class="dir-grupo-titulo">🎥 Eventos especiales</div>
+    <div class="dir-lista">
+      <div class="dir-item">
+        <div class="dir-ico">🎪</div>
+        <div class="dir-info">
+          <div class="dir-nombre">Feria del Pueblo 2026</div>
+          <div class="dir-dato">📅 15 de agosto · 6:00pm</div>
+        </div>
+        <a href="#" class="dir-tel-btn" style="background:rgba(59,130,246,.15);color:#3b82f6;border-color:rgba(59,130,246,.3);">
+          Próximo
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+  }
+  .live-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: #ef4444;
+    border-radius: 50%;
+    margin-right: 4px;
+    animation: pulse-dot 1.2s ease-in-out infinite;
+  }
+</style>
+{% endblock %}

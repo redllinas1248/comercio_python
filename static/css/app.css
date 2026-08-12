@@ -1839,3 +1839,23 @@ body {
   padding: 0;
   text-decoration: underline;
 }
+/* ===== BOTÓN TRANSMISIONES EN VIVO EN NAVBAR ===== */
+.nav-transmisiones {
+  position: relative;
+}
+.nav-transmisiones .live-dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 10px;
+  height: 10px;
+  background: #ef4444;
+  border-radius: 50%;
+  border: 2px solid var(--bg);
+  animation: pulse-dot 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
