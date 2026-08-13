@@ -20,7 +20,8 @@ class Config:
 
     UPLOAD_FOLDER      = os.path.join('static', 'img', 'posts')
     VIDEO_FOLDER       = os.path.join('static', 'videos', 'posts')
-    MAX_CONTENT_LENGTH = 100 * 1024 * 1024
+    # Límite de subida: 20 MB + margen (25 MB)
+    MAX_CONTENT_LENGTH = 25 * 1024 * 1024
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
     ALLOWED_VIDEO_EXTS = {'mp4', 'mov', 'webm', 'avi'}
 
