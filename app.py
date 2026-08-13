@@ -54,9 +54,11 @@ def security_headers(response):
     response.headers.setdefault('X-Frame-Options', 'SAMEORIGIN')
     response.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
     response.headers.setdefault('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+    # CSP con soporte para videos de Cloudinary
     response.headers['Content-Security-Policy'] = (
         "default-src 'self'; "
         "img-src 'self' data: https://res.cloudinary.com; "
+        "media-src 'self' https://res.cloudinary.com; "
         "script-src 'self' 'unsafe-inline' https://www.youtube.com; "
         "frame-src https://www.youtube.com; "
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "

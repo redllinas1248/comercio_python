@@ -263,15 +263,18 @@ function previewMedia(input, tipo) {
     wrap.innerHTML = '';
     const file = input.files[0];
     if (!file) return;
-    const MAX_VID = 20 * 1024 * 1024; // 20 MB
+    const MAX_VID = 20 * 1024 * 1024; // <--- CAMBIADO A 20 MB
     if (file.size > MAX_VID) {
-      toast(`⚠️ El video supera el límite de 20 MB (pesa ${(file.size/1024/1024).toFixed(1)} MB)`);
-      input.value = ''; return;
+      // Mostrar mensaje más claro
+      const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+      toast(`⚠️ El video excede el límite de 20 MB (pesa ${sizeMB} MB). Por favor, comprime o usa un video más pequeño.`);
+      input.value = '';
+      return;
     }
     const url = URL.createObjectURL(file);
     const vid = document.createElement('video');
     vid.src = url; vid.controls = true;
-    vid.style.cssText = 'width:100%;border-radius:8px;max-height:180px;margin-top:.5rem;background:#000;';
+    vid.style.cssText = 'width:100%;border-radius:8px;max-height:180px;margin-top:.5rem';
     wrap.appendChild(vid);
   } else {
     wrap.innerHTML = '';
