@@ -246,3 +246,6 @@ def estadisticas():
         'pubs_hoy': pubs_hoy,
         'visitas_totales': visitas
     })
+@views_bp.route('/offline')
+def offline():
+    return render_template('offline.html')

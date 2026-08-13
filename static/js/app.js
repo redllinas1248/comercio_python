@@ -499,3 +499,28 @@ document.addEventListener('DOMContentLoaded', async () => {
   await verificarSesion();
   cargarPublicaciones();
 });
+// ===== PWA: Detectar instalación =====
+let deferredPrompt;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  // Prevenir que Chrome muestre automáticamente el banner
+  e.preventDefault();
+  deferredPrompt = e;
+  // Opcional: mostrar un botón de instalación personalizado
+  console.log('📱 La app se puede instalar');
+});
+
+// Si quieres mostrar un botón de instalación, puedes activarlo con:
+// async function instalarApp() {
+//   if (deferredPrompt) {
+//     deferredPrompt.prompt();
+//     const result = await deferredPrompt.userChoice;
+//     console.log('Usuario eligió:', result.outcome);
+//     deferredPrompt = null;
+//   }
+// }
+
+// Detectar si la app ya está instalada
+window.addEventListener('appinstalled', () => {
+  console.log('✅ App instalada correctamente');
+});

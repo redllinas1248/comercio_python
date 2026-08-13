@@ -76,12 +76,12 @@
   <div id="toast" class="toast hidden"></div>
 
   <script src="/static/js/app.js"></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/static/sw.js')
-        .then(() => console.log('SW ok'))
-        .catch(() => {});
-    }
-  </script>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/static/sw.js')
+      .then(reg => console.log('✅ SW registrado correctamente'))
+      .catch(err => console.error('❌ Error al registrar SW:', err));
+  }
+</script>
 </body>
 </html>
