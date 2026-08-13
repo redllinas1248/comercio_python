@@ -524,3 +524,44 @@ window.addEventListener('beforeinstallprompt', (e) => {
 window.addEventListener('appinstalled', () => {
   console.log('✅ App instalada correctamente');
 });
+// ===== INSTALACIÓN PWA =====
+let deferredPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  // Prevenir que el navegador muestre el diálogo automáticamente
+  e.preventDefault();
+  // Guardar el evento para usarlo después
+  deferredPrompt = e;
+  // Mostrar el botón de instalación en la interfaz
+  const installBtn = document.getElementById('install-btn');
+  if (installBtn) installBtn.style.display = 'flex';
+});
+
+// Función para instalar la app (se llama desde el botón)
+async function instalarApp() {
+  if (!deferredPrompt) {
+    toast('⚠️ La instalación no está disponible en este momento');
+    return;
+  }
+  // Mostrar el diálogo de instalación
+  deferredPrompt.prompt();
+  // Esperar la respuesta del usuario
+  const result = await deferredPrompt.userChoice;
+  if (result.outcome === 'accepted') {
+    toast('✅ App instalada correctamente');
+  } else {
+    toast('❌ Instalación cancelada');
+  }
+  // Limpiar el evento
+  deferredPrompt = null;
+  // Ocultar el botón
+  const installBtn = document.getElementById('install-btn');
+  if (installBtn) installBtn.style.display = 'none';
+}
+
+// Si la app ya está instalada, ocultar el botón
+window.addEventListener('appinstalled', () => {
+  const installBtn = document.getElementById('install-btn');
+  if (installBtn) installBtn.style.display = 'none';
+  toast('🎉 ¡Gracias por instalar la app!');
+});
