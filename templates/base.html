@@ -29,7 +29,17 @@
       <span>Inicio</span>
     </a>
     <div class="nav-links">
-      <!-- NUEVO BOTÓN TRANSMISIONES EN VIVO -->
+      <!-- BOTÓN DE INSTALACIÓN PWA (oculto por defecto) -->
+      <button id="install-btn" class="nav-link nav-install" style="display:none" onclick="instalarApp()" title="Instalar app">
+        <svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        <span>Instalar</span>
+      </button>
+
+      <!-- TRANSMISIONES EN VIVO -->
       <a href="/transmisiones" class="nav-link nav-transmisiones" title="Transmisiones en vivo">
         <svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
           <polygon points="23 7 16 12 23 17 23 7"/>
@@ -38,36 +48,36 @@
         <span class="live-dot"></span>
       </a>
 
-      <!-- Botón de instalación (oculto por defecto) -->
-<button id="install-btn" class="nav-link nav-install" style="display:none" onclick="instalarApp()" title="Instalar app">
-  <svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-    <polyline points="7 10 12 15 17 10"/>
-    <line x1="12" y1="15" x2="12" y2="3"/>
-  </svg>
-</button>
-
+      <!-- BUSCAR -->
       <a href="/buscar" class="nav-link" title="Buscar">
         <svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
           <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
         </svg>
       </a>
+
+      <!-- MENSAJES (autenticado) -->
       <a href="/mensajes" class="nav-link nav-auth" style="display:none" title="Mensajes">
         <svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
           <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
         </svg>
       </a>
+
+      <!-- NOTIFICACIONES (autenticado) -->
       <a href="/notificaciones" class="nav-link nav-auth nav-notif" style="display:none" id="badge-notif" title="Notificaciones">
         <svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
           <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>
         </svg>
         <span class="notif-badge" id="notif-count" style="display:none"></span>
       </a>
+
+      <!-- PERFIL (autenticado) -->
       <a href="/perfil" class="nav-link nav-auth" style="display:none" title="Perfil">
         <svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
           <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
         </svg>
       </a>
+
+      <!-- LOGIN (visitante) -->
       <a href="/login" class="nav-link nav-guest nav-login-btn" title="Iniciar sesión">
         <svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
           <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/>
@@ -85,12 +95,12 @@
   <div id="toast" class="toast hidden"></div>
 
   <script src="/static/js/app.js"></script>
-<script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/static/sw.js')
-      .then(reg => console.log('✅ SW registrado correctamente'))
-      .catch(err => console.error('❌ Error al registrar SW:', err));
-  }
-</script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/static/sw.js')
+        .then(() => console.log('SW registrado'))
+        .catch(err => console.error('Error SW:', err));
+    }
+  </script>
 </body>
 </html>

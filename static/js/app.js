@@ -107,7 +107,6 @@ async function verificarSesion() {
     const _yo = await api('/api/auth/yo');
     SESION_ACTIVA = true;
     _miTel = _yo.telefono;
-    // Mostrar fab de publicar, ocultar fab de login
     const fabPub = $('fab-pub');
     const fabLogin = $('fab-login');
     const visitorBanner = $('visitor-banner');
@@ -494,74 +493,41 @@ document.addEventListener('keydown', e => {
   }
 });
 
-/* ===== Init ===== */
-document.addEventListener('DOMContentLoaded', async () => {
-  await verificarSesion();
-  cargarPublicaciones();
-});
-// ===== PWA: Detectar instalación =====
-let deferredPrompt;
-
-window.addEventListener('beforeinstallprompt', (e) => {
-  // Prevenir que Chrome muestre automáticamente el banner
-  e.preventDefault();
-  deferredPrompt = e;
-  // Opcional: mostrar un botón de instalación personalizado
-  console.log('📱 La app se puede instalar');
-});
-
-// Si quieres mostrar un botón de instalación, puedes activarlo con:
-// async function instalarApp() {
-//   if (deferredPrompt) {
-//     deferredPrompt.prompt();
-//     const result = await deferredPrompt.userChoice;
-//     console.log('Usuario eligió:', result.outcome);
-//     deferredPrompt = null;
-//   }
-// }
-
-// Detectar si la app ya está instalada
-window.addEventListener('appinstalled', () => {
-  console.log('✅ App instalada correctamente');
-});
-// ===== INSTALACIÓN PWA =====
+/* ===== INSTALACIÓN PWA ===== */
 let deferredPrompt = null;
 
 window.addEventListener('beforeinstallprompt', (e) => {
-  // Prevenir que el navegador muestre el diálogo automáticamente
   e.preventDefault();
-  // Guardar el evento para usarlo después
   deferredPrompt = e;
-  // Mostrar el botón de instalación en la interfaz
   const installBtn = document.getElementById('install-btn');
   if (installBtn) installBtn.style.display = 'flex';
 });
 
-// Función para instalar la app (se llama desde el botón)
 async function instalarApp() {
   if (!deferredPrompt) {
     toast('⚠️ La instalación no está disponible en este momento');
     return;
   }
-  // Mostrar el diálogo de instalación
   deferredPrompt.prompt();
-  // Esperar la respuesta del usuario
   const result = await deferredPrompt.userChoice;
   if (result.outcome === 'accepted') {
     toast('✅ App instalada correctamente');
   } else {
     toast('❌ Instalación cancelada');
   }
-  // Limpiar el evento
   deferredPrompt = null;
-  // Ocultar el botón
   const installBtn = document.getElementById('install-btn');
   if (installBtn) installBtn.style.display = 'none';
 }
 
-// Si la app ya está instalada, ocultar el botón
 window.addEventListener('appinstalled', () => {
   const installBtn = document.getElementById('install-btn');
   if (installBtn) installBtn.style.display = 'none';
   toast('🎉 ¡Gracias por instalar la app!');
+});
+
+/* ===== Init ===== */
+document.addEventListener('DOMContentLoaded', async () => {
+  await verificarSesion();
+  cargarPublicaciones();
 });
