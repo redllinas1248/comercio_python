@@ -8,6 +8,9 @@ import cloudinary.api
 
 pub_bp = Blueprint('publicaciones', __name__, url_prefix='/api/publicaciones')
 
+# ===== CONFIGURACIÓN =====
+DIAS_PARA_ELIMINAR = 30  # Publicaciones más antiguas que esto se eliminarán
+
 
 def subir_cloudinary(archivo, carpeta='posts'):
     import cloudinary.uploader
@@ -19,13 +22,106 @@ def subir_cloudinary(archivo, carpeta='posts'):
     return resultado['secure_url']
 
 
-def eliminar_cloudinary_archivo(public_id):
+def eliminar_cloudinary_archivo(public_id, resource_type="image"):
+    """Elimina un archivo de Cloudinary por su public_id."""
     try:
-        cloudinary.uploader.destroy(public_id, resource_type="image")
-    except Exception:
-        pass
+        cloudinary.uploader.destroy(public_id, resource_type=resource_type)
+    except Exception as e:
+        current_app.logger.error(f"Error eliminando {public_id}: {e}")
 
 
+def extraer_public_id(ruta):
+    """Extrae el public_id de una URL de Cloudinary."""
+    # Ejemplo: https://res.cloudinary.com/.../comercio/imagenes/abcd.jpg
+    if '/comercio/' in ruta:
+        partes = ruta.split('/comercio/')
+        if len(partes) > 1:
+            public_id = partes[1].split('.')[0]  # Quitar extensión
+            return f"comercio/{public_id}"
+    return None
+
+
+def eliminar_archivos_cloudinary(imagenes, videos):
+    """Elimina todas las imágenes y videos de Cloudinary."""
+    # Eliminar imágenes
+    for ruta in imagenes:
+        public_id = extraer_public_id(ruta)
+        if public_id:
+            eliminar_cloudinary_archivo(public_id, "image")
+    
+    # Eliminar videos
+    for ruta in videos:
+        public_id = extraer_public_id(ruta)
+        if public_id:
+            eliminar_cloudinary_archivo(public_id, "video")
+
+
+def limpiar_publicaciones_antiguas():
+    """
+    Elimina publicaciones con más de DIAS_PARA_ELIMINAR días de antigüedad.
+    Retorna el número de publicaciones eliminadas.
+    """
+    db = get_db()
+    cur = db.connection.cursor()
+    
+    # Obtener publicaciones antiguas
+    cur.execute("""
+        SELECT id, telefono 
+        FROM publicaciones 
+        WHERE fecha < DATE_SUB(NOW(), INTERVAL %s DAY)
+    """, (DIAS_PARA_ELIMINAR,))
+    
+    pubs = cur.fetchall()
+    eliminadas = 0
+    
+    for pub_id, telefono in pubs:
+        # Obtener imágenes y videos asociados
+        cur.execute("SELECT ruta FROM publicaciones_imagenes WHERE publicacion_id = %s", (pub_id,))
+        imagenes = [r[0] for r in cur.fetchall()]
+        
+        cur.execute("SELECT ruta FROM publicaciones_videos WHERE publicacion_id = %s", (pub_id,))
+        videos = [r[0] for r in cur.fetchall()]
+        
+        # Eliminar archivos de Cloudinary
+        try:
+            eliminar_archivos_cloudinary(imagenes, videos)
+        except Exception as e:
+            current_app.logger.error(f"Error eliminando archivos de Cloudinary para pub {pub_id}: {e}")
+        
+        # Eliminar registros de la BD
+        cur.execute("DELETE FROM publicaciones_imagenes WHERE publicacion_id = %s", (pub_id,))
+        cur.execute("DELETE FROM publicaciones_videos WHERE publicacion_id = %s", (pub_id,))
+        cur.execute("DELETE FROM likes WHERE publicacion_id = %s", (pub_id,))
+        cur.execute("DELETE FROM comentarios WHERE publicacion_id = %s", (pub_id,))
+        cur.execute("DELETE FROM publicaciones WHERE id = %s", (pub_id,))
+        
+        eliminadas += 1
+    
+    db.connection.commit()
+    cur.close()
+    return eliminadas
+
+
+# ===== ENDPOINT PARA LIMPIEZA MANUAL (solo admin) =====
+@pub_bp.route('/limpiar', methods=['POST'])
+def limpiar_manual():
+    """Endpoint para ejecutar la limpieza manualmente (solo admin)."""
+    _, error = require_api_admin()
+    if error:
+        return error
+    
+    try:
+        eliminadas = limpiar_publicaciones_antiguas()
+        return jsonify({
+            'mensaje': f'Limpieza completada. {eliminadas} publicaciones eliminadas.',
+            'eliminadas': eliminadas
+        })
+    except Exception as e:
+        current_app.logger.error(f"Error en limpieza manual: {e}")
+        return jsonify({'error': 'Error al ejecutar la limpieza'}), 500
+
+
+# ===== RUTAS EXISTENTES =====
 @pub_bp.route('', methods=['GET'])
 def listar():
     categoria_id    = request.args.get('categoria_id')
@@ -151,7 +247,6 @@ def crear():
     db  = get_db()
     cur = db.connection.cursor()
 
-    # Verificar limite de 2 publicaciones en las ultimas 24 horas
     cur.execute(
         "SELECT COUNT(*) FROM publicaciones WHERE telefono = %s AND fecha >= NOW() - INTERVAL 24 HOUR",
         (telefono,)
@@ -179,10 +274,8 @@ def crear():
         )
         db.connection.commit()
 
-    # Límite de tamaño de video: 20 MB
-    MAX_VIDEO_SIZE = 20 * 1024 * 1024
-
-    # Subir imágenes a Cloudinary
+    # Subir imágenes a Cloudinary (límite 20 MB)
+    MAX_VIDEO_SIZE = 20 * 1024 * 1024  # 20 MB
     for img in request.files.getlist('imagenes'):
         if img and img.filename:
             ext = img.filename.rsplit('.', 1)[-1].lower()
@@ -196,20 +289,18 @@ def crear():
                 except Exception as e:
                     current_app.logger.error(f"Error subiendo imagen: {e}")
 
-    # Subir video a Cloudinary con validación de tamaño
+    # Subir video a Cloudinary con límite de 20 MB
     for vid in request.files.getlist('videos'):
         if vid and vid.filename:
+            # Validar tamaño
+            vid.seek(0, os.SEEK_END)
+            size = vid.tell()
+            vid.seek(0)
+            if size > MAX_VIDEO_SIZE:
+                continue  # Ignorar videos que excedan el límite
+            
             ext = vid.filename.rsplit('.', 1)[-1].lower()
             if ext in {'mp4','mov','webm','avi'}:
-                # Validar tamaño del video
-                vid.seek(0, os.SEEK_END)
-                size = vid.tell()
-                vid.seek(0)
-                if size > MAX_VIDEO_SIZE:
-                    cur.close()
-                    return jsonify({
-                        'error': f'⚠️ El video supera el límite de 20 MB (pesa {(size/1024/1024):.1f} MB)'
-                    }), 400
                 try:
                     url = subir_cloudinary(vid, 'videos')
                     cur.execute(
@@ -249,14 +340,10 @@ def eliminar(pub_id):
     videos = [r[0] for r in cur.fetchall()]
 
     # Eliminar archivos de Cloudinary
-    for ruta in imagenes + videos:
-        if ruta and ruta.startswith('http'):
-            try:
-                public_id = ruta.split('/comercio/')[1].split('.')[0] if '/comercio/' in ruta else None
-                if public_id:
-                    cloudinary.uploader.destroy(f"comercio/{public_id}", resource_type="image")
-            except Exception as e:
-                current_app.logger.error(f"Error eliminando archivo de Cloudinary: {e}")
+    try:
+        eliminar_archivos_cloudinary(imagenes, videos)
+    except Exception as e:
+        current_app.logger.error(f"Error eliminando archivos de Cloudinary: {e}")
 
     # Eliminar registros de la BD
     cur.execute("DELETE FROM publicaciones_imagenes WHERE publicacion_id = %s", (pub_id,))

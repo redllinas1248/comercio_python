@@ -1,9 +1,12 @@
 import os
 import logging
 from flask import Flask, request, jsonify
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.interval import IntervalTrigger
 from security import validate_csrf
 from config import Config, init_cloudinary
 from db import init_db
+from routes.publicaciones import limpiar_publicaciones_antiguas
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -54,7 +57,6 @@ def security_headers(response):
     response.headers.setdefault('X-Frame-Options', 'SAMEORIGIN')
     response.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
     response.headers.setdefault('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
-    # CSP con soporte para videos de Cloudinary
     response.headers['Content-Security-Policy'] = (
         "default-src 'self'; "
         "img-src 'self' data: https://res.cloudinary.com; "
@@ -72,6 +74,7 @@ def security_headers(response):
 init_db(app)
 init_cloudinary(app)
 
+# ===== REGISTRAR BLUEPRINTS =====
 from routes.auth import auth_bp
 from routes.publicaciones import pub_bp
 from routes.comentarios import com_bp
@@ -89,6 +92,33 @@ app.register_blueprint(msg_bp)
 app.register_blueprint(notif_bp)
 app.register_blueprint(dir_bp)
 app.register_blueprint(views_bp)
+
+# ===== SCHEDULER: LIMPIEZA AUTOMÁTICA DE PUBLICACIONES =====
+def limpieza_programada():
+    """Ejecuta la limpieza de publicaciones antiguas en segundo plano."""
+    with app.app_context():
+        try:
+            eliminadas = limpiar_publicaciones_antiguas()
+            app.logger.info(f"Limpieza programada: {eliminadas} publicaciones eliminadas")
+        except Exception as e:
+            app.logger.error(f"Error en limpieza programada: {e}")
+
+# Iniciar el scheduler al arrancar la aplicación
+scheduler = BackgroundScheduler()
+# Ejecutar cada 24 horas a las 3:00 AM (hora del servidor)
+scheduler.add_job(
+    limpieza_programada,
+    'cron',
+    hour=3,
+    minute=0,
+    id='limpieza_publicaciones',
+    replace_existing=True
+)
+scheduler.start()
+
+# Detener el scheduler al cerrar la app
+import atexit
+atexit.register(lambda: scheduler.shutdown())
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

@@ -8,7 +8,6 @@ class Config:
     MYSQL_DB       = os.environ.get('MYSQL_DB')
     MYSQL_PORT     = int(os.environ.get('MYSQL_PORT', 3306))
 
-    # Soporte completo de emojis y caracteres especiales
     MYSQL_CHARSET  = 'utf8mb4'
 
     SECRET_KEY = os.environ.get('SECRET_KEY')
@@ -20,8 +19,7 @@ class Config:
 
     UPLOAD_FOLDER      = os.path.join('static', 'img', 'posts')
     VIDEO_FOLDER       = os.path.join('static', 'videos', 'posts')
-    # Límite de subida: 20 MB + margen (25 MB)
-    MAX_CONTENT_LENGTH = 25 * 1024 * 1024
+    MAX_CONTENT_LENGTH = 20 * 1024 * 1024  # 20 MB
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
     ALLOWED_VIDEO_EXTS = {'mp4', 'mov', 'webm', 'avi'}
 
