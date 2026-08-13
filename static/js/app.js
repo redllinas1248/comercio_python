@@ -162,7 +162,7 @@ function renderPub(p) {
   let imgsHtml = '';
   if (vids.length) {
     imgsHtml = `<div class="card-video-wrap">
-      <video src="${imgUrl(vids[0])}" controls playsinline preload="metadata" class="card-video"></video>
+      <video src="${imgUrl(vids[0])}" controls playsinline preload="metadata" class="card-video" style="width:100%;max-height:340px;background:#000;display:block;"></video>
     </div>`;
   } else if (imgs.length) {
     const cls = `n${Math.min(imgs.length, 3)}`;
@@ -263,15 +263,15 @@ function previewMedia(input, tipo) {
     wrap.innerHTML = '';
     const file = input.files[0];
     if (!file) return;
-    const MAX_VID = 100 * 1024 * 1024;
+    const MAX_VID = 20 * 1024 * 1024; // 20 MB
     if (file.size > MAX_VID) {
-      toast(`⚠️ El video supera el límite de 100 MB (pesa ${(file.size/1024/1024).toFixed(1)} MB)`);
+      toast(`⚠️ El video supera el límite de 20 MB (pesa ${(file.size/1024/1024).toFixed(1)} MB)`);
       input.value = ''; return;
     }
     const url = URL.createObjectURL(file);
     const vid = document.createElement('video');
     vid.src = url; vid.controls = true;
-    vid.style.cssText = 'width:100%;border-radius:8px;max-height:180px;margin-top:.5rem';
+    vid.style.cssText = 'width:100%;border-radius:8px;max-height:180px;margin-top:.5rem;background:#000;';
     wrap.appendChild(vid);
   } else {
     wrap.innerHTML = '';

@@ -178,6 +178,7 @@ def crear():
         )
         db.connection.commit()
 
+    # Subir imágenes
     for img in request.files.getlist('imagenes'):
         if img and img.filename:
             ext = img.filename.rsplit('.', 1)[-1].lower()
@@ -191,8 +192,17 @@ def crear():
                 except Exception as e:
                     current_app.logger.error(f"Error subiendo imagen: {e}")
 
+    # Subir videos con validación de tamaño (20 MB)
+    MAX_VIDEO_SIZE = 20 * 1024 * 1024  # 20 MB
     for vid in request.files.getlist('videos'):
         if vid and vid.filename:
+            # Validar tamaño
+            vid.seek(0, os.SEEK_END)
+            size = vid.tell()
+            vid.seek(0)
+            if size > MAX_VIDEO_SIZE:
+                return jsonify({'error': f'El video "{vid.filename}" excede el límite de 20 MB'}), 400
+            
             ext = vid.filename.rsplit('.', 1)[-1].lower()
             if ext in {'mp4','mov','webm','avi'}:
                 try:
@@ -203,6 +213,7 @@ def crear():
                     )
                 except Exception as e:
                     current_app.logger.error(f"Error subiendo video: {e}")
+                    return jsonify({'error': 'No se pudo subir el video'}), 500
 
     db.connection.commit()
     cur.close()
