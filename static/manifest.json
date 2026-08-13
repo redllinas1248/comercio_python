@@ -1,12 +1,14 @@
 {
-  "name": "Comercio Local José Azueta",
+  "name": "Ventas Locales José Azueta",
   "short_name": "Comercio Local",
   "description": "Compra, vende y conecta en tu comunidad",
   "start_url": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
   "background_color": "#0f172a",
-  "theme_color": "#0ea5e9",
+  "theme_color": "#0f172a",
   "orientation": "portrait",
+  "scope": "/",
   "icons": [
     {
       "src": "/static/img/icon-192.png",
@@ -20,5 +22,16 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "screenshots": [
+    {
+      "src": "/static/img/screenshot-mobile.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "platform": "android",
+      "label": "Pantalla principal de Comercio Local"
+    }
+  ],
+  "categories": ["shopping", "social", "news"],
+  "lang": "es-MX"
 }
