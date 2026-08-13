@@ -388,17 +388,37 @@ def destacar(pub_id):
 
 @pub_bp.route('/buscar', methods=['GET'])
 def buscar():
-    q      = request.args.get('q', '').strip()
+    q = request.args.get('q', '').strip()
     try:
         limite = max(1, min(int(request.args.get('limite', 20)), 50))
     except (TypeError, ValueError):
         return jsonify({'error': 'Límite inválido'}), 400
     if not q:
-        return jsonify([])
+        return jsonify({'usuarios': [], 'publicaciones': []})
 
     like = f"%{q}%"
-    db   = get_db()
-    cur  = db.connection.cursor()
+    db = get_db()
+    cur = db.connection.cursor()
+
+    # BUSCAR USUARIOS
+    cur.execute("""
+        SELECT telefono, nombre, foto, localidad, 
+               (SELECT COUNT(*) FROM publicaciones WHERE telefono = u.telefono) AS total_pubs
+        FROM usuarios u
+        WHERE nombre LIKE %s OR telefono LIKE %s
+        LIMIT 5
+    """, (like, like))
+    usuarios = []
+    for row in cur.fetchall():
+        usuarios.append({
+            'telefono': row[0],
+            'nombre': row[1] or row[0],
+            'foto': row[2],
+            'localidad': row[3],
+            'total_pubs': row[4]
+        })
+
+    # BUSCAR PUBLICACIONES
     cur.execute("""
         SELECT p.id, p.telefono, p.contenido, p.fecha,
                u.nombre AS autor, u.foto AS autor_foto, u.telefono AS tel_autor,
@@ -410,20 +430,21 @@ def buscar():
         WHERE p.contenido LIKE %s OR u.nombre LIKE %s OR u.telefono LIKE %s
         ORDER BY p.fecha DESC LIMIT %s
     """, (like, like, like, limite))
-    rows   = cur.fetchall()
-    keys   = ['id','telefono','contenido','fecha','autor','autor_foto','tel_autor','precio','comunidad','destacada','total_likes','total_comentarios']
-    result = []
+    rows = cur.fetchall()
+    keys = ['id','telefono','contenido','fecha','autor','autor_foto','tel_autor','precio','comunidad','destacada','total_likes','total_comentarios']
+    publicaciones = []
     for row in rows:
         pub = dict(zip(keys, row))
-        pub['fecha']  = str(pub['fecha'])
+        pub['fecha'] = str(pub['fecha'])
         pub['precio'] = str(pub['precio']) if pub['precio'] else None
         cur.execute("SELECT ruta FROM publicaciones_imagenes WHERE publicacion_id = %s", (pub['id'],))
         pub['imagenes'] = [r[0] for r in cur.fetchall()]
         cur.execute("SELECT ruta FROM publicaciones_videos WHERE publicacion_id = %s", (pub['id'],))
         pub['videos'] = [r[0] for r in cur.fetchall()]
-        result.append(pub)
+        publicaciones.append(pub)
+
     cur.close()
-    return jsonify(result)
+    return jsonify({'usuarios': usuarios, 'publicaciones': publicaciones})
 
 
 @pub_bp.route('/admin/lista', methods=['GET'])
