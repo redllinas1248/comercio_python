@@ -23,15 +23,6 @@
       "purpose": "any maskable"
     }
   ],
-  "screenshots": [
-    {
-      "src": "/static/img/screenshot-mobile.png",
-      "sizes": "1080x1920",
-      "type": "image/png",
-      "platform": "android",
-      "label": "Pantalla principal de Comercio Local"
-    }
-  ],
   "categories": ["shopping", "social", "news"],
   "lang": "es-MX"
 }
