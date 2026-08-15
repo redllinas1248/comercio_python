@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify, render_template, current_app
 from db import get_db
 from security import require_api_admin, get_current_user
 import html
+from datetime import datetime
 
 transmisiones_bp = Blueprint('transmisiones', __name__, url_prefix='/api/transmisiones')
 
@@ -11,7 +12,6 @@ def validar_url(url):
     if not url:
         return False
     url = url.strip()
-    # Aceptar IDs de video de YouTube (ej: oPy8a-TCjzA) o URLs completas
     if len(url) == 11 and url.isalnum() and '-' in url:
         return True
     if url.startswith('https://www.youtube.com/') or url.startswith('https://youtu.be/'):
@@ -24,10 +24,8 @@ def validar_url(url):
 def obtener_embed_url(url):
     """Convierte una URL o ID de YouTube a URL de embed."""
     url = url.strip()
-    # Si es un ID de video de 11 caracteres
     if len(url) == 11 and url.isalnum() and '-' in url:
         return f"https://www.youtube.com/embed/{url}"
-    # Si es una URL de YouTube, extraer el ID si es posible
     if 'youtube.com/watch?v=' in url:
         video_id = url.split('v=')[1].split('&')[0]
         return f"https://www.youtube.com/embed/{video_id}"
@@ -35,18 +33,15 @@ def obtener_embed_url(url):
         video_id = url.split('youtu.be/')[1].split('?')[0]
         return f"https://www.youtube.com/embed/{video_id}"
     if 'youtube.com/embed/' in url:
-        return url  # Ya es embed
+        return url
     if 'youtube.com/live_stream?channel=' in url:
-        return url  # Canal en vivo
-    # Si no, devolver la URL tal cual
+        return url
     return url
 
 
 # ===== RUTAS PÚBLICAS =====
-
 @transmisiones_bp.route('/publicas', methods=['GET'])
 def listar_publicas():
-    """Devuelve todas las transmisiones activas para la página pública."""
     db = get_db()
     cur = db.connection.cursor()
     cur.execute("""
@@ -64,7 +59,6 @@ def listar_publicas():
 
 @transmisiones_bp.route('/destacada', methods=['GET'])
 def obtener_destacada():
-    """Devuelve la transmisión destacada (para poner en el reproductor por defecto)."""
     db = get_db()
     cur = db.connection.cursor()
     cur.execute("""
@@ -82,19 +76,14 @@ def obtener_destacada():
     return jsonify(dict(zip(keys, row)))
 
 
-# ===== VISTA PÚBLICA =====
-
 @transmisiones_bp.route('/vista')
 def vista_transmisiones():
-    """Renderiza la página pública de transmisiones."""
     return render_template('transmisiones.html')
 
 
 # ===== CRUD ADMIN =====
-
 @transmisiones_bp.route('', methods=['GET'])
 def listar_admin():
-    """Lista todas las transmisiones para el panel de admin."""
     _, error = require_api_admin()
     if error:
         return error
@@ -108,15 +97,20 @@ def listar_admin():
     rows = cur.fetchall()
     cur.close()
     keys = ['id', 'titulo', 'descripcion', 'url', 'categoria', 'destacada', 'activo', 'orden', 'fecha_creacion']
-    result = [dict(zip(keys, row)) for row in rows]
-    for r in result:
-        r['fecha_creacion'] = str(r['fecha_creacion'])
+    result = []
+    for row in rows:
+        item = dict(zip(keys, row))
+        # Si fecha_creacion es None o no es datetime, dejamos como string vacío
+        if item['fecha_creacion']:
+            item['fecha_creacion'] = str(item['fecha_creacion'])
+        else:
+            item['fecha_creacion'] = ''
+        result.append(item)
     return jsonify(result)
 
 
 @transmisiones_bp.route('', methods=['POST'])
 def crear():
-    """Crea una nueva transmisión."""
     _, error = require_api_admin()
     if error:
         return error
@@ -137,7 +131,6 @@ def crear():
     if not validar_url(url):
         return jsonify({'error': 'URL inválida. Debe ser un ID de YouTube o enlace válido'}), 400
     
-    # Si es destacada, quitar destacada de las demás
     if destacada:
         db = get_db()
         cur = db.connection.cursor()
@@ -147,10 +140,11 @@ def crear():
     
     db = get_db()
     cur = db.connection.cursor()
+    ahora = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     cur.execute("""
-        INSERT INTO transmisiones (titulo, descripcion, url, categoria, destacada, activo, orden)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
-    """, (titulo, descripcion, url, categoria, destacada, activo, orden))
+        INSERT INTO transmisiones (titulo, descripcion, url, categoria, destacada, activo, orden, fecha_creacion, fecha_actualizacion)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """, (titulo, descripcion, url, categoria, destacada, activo, orden, ahora, ahora))
     db.connection.commit()
     nuevo_id = cur.lastrowid
     cur.close()
@@ -160,13 +154,11 @@ def crear():
 
 @transmisiones_bp.route('/<int:item_id>', methods=['PUT'])
 def actualizar(item_id):
-    """Actualiza una transmisión existente."""
     _, error = require_api_admin()
     if error:
         return error
     data = request.get_json(silent=True) or {}
     
-    # Obtener los campos a actualizar
     campos_permitidos = ['titulo', 'descripcion', 'url', 'categoria', 'destacada', 'activo', 'orden']
     updates = {}
     for campo in campos_permitidos:
@@ -194,13 +186,15 @@ def actualizar(item_id):
     if not updates:
         return jsonify({'error': 'Nada que actualizar'}), 400
     
-    # Si se está marcando como destacada, quitar destacada de las demás
     if updates.get('destacada') == 1:
         db = get_db()
         cur = db.connection.cursor()
         cur.execute("UPDATE transmisiones SET destacada = 0 WHERE id != %s", (item_id,))
         db.connection.commit()
         cur.close()
+    
+    # Agregar fecha_actualizacion manual
+    updates['fecha_actualizacion'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     
     set_clause = ', '.join(f"{k} = %s" for k in updates)
     valores = list(updates.values()) + [item_id]
@@ -216,7 +210,6 @@ def actualizar(item_id):
 
 @transmisiones_bp.route('/<int:item_id>', methods=['DELETE'])
 def eliminar(item_id):
-    """Elimina una transmisión."""
     _, error = require_api_admin()
     if error:
         return error
@@ -230,15 +223,13 @@ def eliminar(item_id):
 
 @transmisiones_bp.route('/reordenar', methods=['POST'])
 def reordenar():
-    """Actualiza el orden de las transmisiones (drag & drop)."""
     _, error = require_api_admin()
     if error:
         return error
     data = request.get_json(silent=True) or {}
-    ordenes = data.get('ordenes', [])  # Lista de {id, orden}
+    ordenes = data.get('ordenes', [])
     if not ordenes:
         return jsonify({'error': 'No se enviaron órdenes'}), 400
-    
     db = get_db()
     cur = db.connection.cursor()
     for item in ordenes:
