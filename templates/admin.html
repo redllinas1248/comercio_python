@@ -9,20 +9,21 @@
     <button class="admin-tab active" onclick="setAdminTab('pubs', this)">Publicaciones</button>
     <button class="admin-tab" onclick="setAdminTab('users', this)">Usuarios</button>
     <button class="admin-tab" onclick="setAdminTab('directorio', this)">Directorio</button>
+    <button class="admin-tab" onclick="setAdminTab('transmisiones', this)">Transmisiones</button>
     <button class="admin-tab" onclick="setAdminTab('config', this)">Configuración</button>
   </div>
 
-  <!-- ===== TAB PUBLICACIONES ===== -->
+  <!-- PUBLICACIONES -->
   <div id="admin-pubs">
     <div id="pubs-wrap"></div>
   </div>
 
-  <!-- ===== TAB USUARIOS ===== -->
+  <!-- USUARIOS -->
   <div id="admin-users" style="display:none">
     <div id="users-wrap"></div>
   </div>
 
-  <!-- ===== TAB DIRECTORIO ===== -->
+  <!-- DIRECTORIO -->
   <div id="admin-directorio" style="display:none">
     <div class="dir-admin-form" id="dir-form">
       <h3 class="p-section-title" style="margin-bottom:.75rem">Agregar entrada</h3>
@@ -36,7 +37,6 @@
           <input id="df-cat" type="text" placeholder="Ej: Farmacias, Emergencias, Hospitales..." list="cats-list"/>
           <datalist id="cats-list"></datalist>
         </div>
-        <!-- Campo TIPO -->
         <div class="p-field" style="grid-column:span 1">
           <label>Tipo</label>
           <select id="df-tipo" class="select-field" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:.65rem .85rem;outline:none;">
@@ -71,18 +71,63 @@
     <div id="dir-admin-wrap" style="margin-top:1rem"></div>
   </div>
 
-  <!-- ===== TAB CONFIGURACIÓN (NUEVO) ===== -->
+  <!-- ===== TRANSMISIONES (NUEVO) ===== -->
+  <div id="admin-transmisiones" style="display:none">
+    <div class="trans-admin-form" id="trans-form">
+      <h3 class="p-section-title" style="margin-bottom:.75rem">Agregar transmisión</h3>
+      <div class="trans-form-grid">
+        <div class="p-field" style="grid-column:span 3">
+          <label>Título *</label>
+          <input id="tf-titulo" type="text" placeholder="Ej: Milenio Noticias"/>
+        </div>
+        <div class="p-field" style="grid-column:span 1">
+          <label>Categoría</label>
+          <select id="tf-categoria" class="select-field" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:.65rem .85rem;outline:none;">
+            <option value="noticias">📰 Noticias</option>
+            <option value="deportes">⚽ Deportes</option>
+            <option value="eventos">🎥 Eventos</option>
+          </select>
+        </div>
+        <div class="p-field" style="grid-column:span 4">
+          <label>URL o ID de YouTube *</label>
+          <input id="tf-url" type="text" placeholder="ID de video (ej: oPy8a-TCjzA) o URL completa"/>
+          <small style="color:var(--muted);font-size:.7rem;">Ej: oPy8a-TCjzA o https://www.youtube.com/@CanalOnceIPN/live</small>
+        </div>
+        <div class="p-field" style="grid-column:span 3">
+          <label>Descripción (opcional)</label>
+          <input id="tf-descripcion" type="text" placeholder="Breve descripción de la transmisión"/>
+        </div>
+        <div class="p-field" style="grid-column:span 1">
+          <label>Orden</label>
+          <input id="tf-orden" type="number" value="0" min="0" style="width:100%;"/>
+        </div>
+        <div class="p-field" style="grid-column:span 2">
+          <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;">
+            <input id="tf-destacada" type="checkbox" /> Destacada
+          </label>
+        </div>
+        <div class="p-field" style="grid-column:span 2">
+          <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;">
+            <input id="tf-activo" type="checkbox" checked /> Activa
+          </label>
+        </div>
+      </div>
+      <button class="p-btn-save" style="margin-top:.75rem" onclick="guardarTrans()">
+        <span class="btn-text" id="tf-btn-txt">➕ Agregar</span>
+        <div class="spinner-btn"></div>
+      </button>
+      <input type="hidden" id="tf-edit-id" value=""/>
+    </div>
+    <div id="trans-admin-wrap" style="margin-top:1rem"></div>
+  </div>
+
+  <!-- CONFIGURACIÓN -->
   <div id="admin-config" style="display:none">
     <div class="admin-config-card">
-      <p class="admin-config-help">
-        Sube un logo personalizado para el banner superior de tu sitio. 
-        Se mostrará en la parte de arriba de todas las páginas.
-      </p>
-      
+      <p class="admin-config-help">Sube un logo personalizado para el banner superior de tu sitio.</p>
       <div class="logo-config-preview" id="logo-preview-container">
         <img src="{{ logo_url }}" alt="Logo actual" id="logo-preview-img" />
       </div>
-
       <form id="logo-form" class="logo-upload-form" enctype="multipart/form-data">
         <label class="logo-file-label p-btn-save" style="background:var(--bg3);color:var(--text);border:1px solid var(--border);cursor:pointer;padding:.6rem 1rem;border-radius:10px;display:inline-flex;align-items:center;gap:.5rem;">
           📁 Seleccionar imagen
@@ -96,25 +141,26 @@
       </form>
     </div>
   </div>
-
 </div>
 
 <script>
-// ===== FUNCIONES ADMIN =====
+// ===== NAVEGACIÓN ENTRE TABS =====
 function setAdminTab(tab, el) {
   document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
-  document.getElementById('admin-pubs').style.display        = tab === 'pubs'       ? 'block' : 'none';
-  document.getElementById('admin-users').style.display       = tab === 'users'      ? 'block' : 'none';
-  document.getElementById('admin-directorio').style.display  = tab === 'directorio' ? 'block' : 'none';
-  document.getElementById('admin-config').style.display      = tab === 'config'     ? 'block' : 'none';
+  document.getElementById('admin-pubs').style.display        = tab === 'pubs'         ? 'block' : 'none';
+  document.getElementById('admin-users').style.display       = tab === 'users'        ? 'block' : 'none';
+  document.getElementById('admin-directorio').style.display  = tab === 'directorio'   ? 'block' : 'none';
+  document.getElementById('admin-transmisiones').style.display = tab === 'transmisiones' ? 'block' : 'none';
+  document.getElementById('admin-config').style.display      = tab === 'config'       ? 'block' : 'none';
   
-  if (tab === 'pubs')       cargarAdminPubs();
-  if (tab === 'users')      cargarAdminUsers();
-  if (tab === 'directorio') cargarAdminDir();
-  // No necesitamos cargar nada para 'config' porque es estático
+  if (tab === 'pubs')         cargarAdminPubs();
+  if (tab === 'users')        cargarAdminUsers();
+  if (tab === 'directorio')   cargarAdminDir();
+  if (tab === 'transmisiones') cargarAdminTrans();
 }
 
+// ===== PUBLICACIONES (funciones ya existentes) =====
 async function cargarAdminPubs() {
   const wrap = document.getElementById('pubs-wrap');
   wrap.innerHTML = `<div class="spinner-feed"><span></span><span></span><span></span></div>`;
@@ -159,6 +205,33 @@ async function cargarAdminPubs() {
   }
 }
 
+async function toggleDestacada(id) {
+  const star = document.getElementById(`dest-star-${id}`);
+  const activa = star && star.style.opacity === '1';
+  try {
+    await api(`/api/publicaciones/${id}/destacar`, 'POST', { destacada: !activa });
+    document.querySelectorAll('[id^="dest-star-"]').forEach(s => {
+      s.style.opacity = '0.3';
+      s.title = '';
+    });
+    if (!activa) {
+      star.style.opacity = '1';
+      star.title = 'Destacada';
+    }
+    toast(activa ? '⭐ Destacado quitado' : '⭐ ¡Publicación destacada!');
+  } catch(e) { toast(e.message); }
+}
+
+async function eliminarPubAdmin(id) {
+  if (!confirm('¿Eliminar esta publicación?')) return;
+  try {
+    await api(`/api/publicaciones/${id}`, 'DELETE');
+    document.getElementById(`row-pub-${id}`)?.remove();
+    toast('🗑 Publicación eliminada');
+  } catch(e) { toast(e.message); }
+}
+
+// ===== USUARIOS =====
 async function cargarAdminUsers() {
   const wrap = document.getElementById('users-wrap');
   wrap.innerHTML = `<div class="spinner-feed"><span></span><span></span><span></span></div>`;
@@ -184,9 +257,7 @@ async function cargarAdminUsers() {
                     title="${u.rol === 'admin' ? 'Quitar admin' : 'Hacer admin'}">
                     ${u.rol === 'admin' ? '👑 Quitar' : '👑 Admin'}
                   </button>
-                  <button class="admin-btn-del" onclick="banearUser('${u.telefono}')" title="Banear">
-                    🚫
-                  </button>
+                  <button class="admin-btn-del" onclick="banearUser('${u.telefono}')" title="Banear">🚫</button>
                 </td>
               </tr>`).join('')}
           </tbody>
@@ -195,32 +266,6 @@ async function cargarAdminUsers() {
   } catch(e) {
     wrap.innerHTML = `<div class="empty"><p>${escapeHtml(e.message)}</p></div>`;
   }
-}
-
-async function toggleDestacada(id) {
-  const star   = document.getElementById(`dest-star-${id}`);
-  const activa = star && star.style.opacity === '1';
-  try {
-    await api(`/api/publicaciones/${id}/destacar`, 'POST', { destacada: !activa });
-    document.querySelectorAll('[id^="dest-star-"]').forEach(s => {
-      s.style.opacity = '0.3';
-      s.title = '';
-    });
-    if (!activa) {
-      star.style.opacity = '1';
-      star.title = 'Destacada';
-    }
-    toast(activa ? '⭐ Destacado quitado' : '⭐ ¡Publicación destacada!');
-  } catch(e) { toast(e.message); }
-}
-
-async function eliminarPubAdmin(id) {
-  if (!confirm('¿Eliminar esta publicación?')) return;
-  try {
-    await api(`/api/publicaciones/${id}`, 'DELETE');
-    document.getElementById(`row-pub-${id}`)?.remove();
-    toast('🗑 Publicación eliminada');
-  } catch(e) { toast(e.message); }
 }
 
 async function toggleRol(telefono, rolActual) {
@@ -242,9 +287,7 @@ async function banearUser(telefono) {
   } catch(e) { toast(e.message); }
 }
 
-document.addEventListener('DOMContentLoaded', cargarAdminPubs);
-
-// ===== DIRECTORIO ADMIN =====
+// ===== DIRECTORIO =====
 let dirItems = [];
 
 async function cargarAdminDir() {
@@ -253,15 +296,12 @@ async function cargarAdminDir() {
   try {
     const grupos = await api('/api/directorio');
     dirItems = Object.values(grupos).flat();
-
     const cats = [...new Set(Object.keys(grupos))];
     document.getElementById('cats-list').innerHTML = cats.map(c => `<option value="${c}">`).join('');
-
     if (!dirItems.length) {
       wrap.innerHTML = `<p style="color:var(--muted);font-size:.85rem;padding:.5rem 0">Sin entradas aún.</p>`;
       return;
     }
-
     wrap.innerHTML = `
       <div class="admin-table-wrap">
         <table class="admin-table">
@@ -289,7 +329,7 @@ async function cargarAdminDir() {
 }
 
 async function guardarDir() {
-  const editId  = document.getElementById('df-edit-id').value;
+  const editId = document.getElementById('df-edit-id').value;
   const payload = {
     icono:     document.getElementById('df-icono').value.trim()   || '📍',
     categoria: document.getElementById('df-cat').value.trim(),
@@ -301,7 +341,6 @@ async function guardarDir() {
     tipo:      document.getElementById('df-tipo').value
   };
   if (!payload.categoria || !payload.nombre) { toast('⚠️ Categoría y nombre son obligatorios'); return; }
-
   try {
     if (editId) {
       await api(`/api/directorio/${editId}`, 'PUT', payload);
@@ -349,7 +388,109 @@ async function eliminarDir(id) {
   } catch(e) { toast(e.message); }
 }
 
-// ===== CONFIGURACIÓN LOGO (NUEVO) =====
+// ===== TRANSMISIONES (NUEVO) =====
+let transItems = [];
+
+async function cargarAdminTrans() {
+  const wrap = document.getElementById('trans-admin-wrap');
+  wrap.innerHTML = `<div class="spinner-feed"><span></span><span></span><span></span></div>`;
+  try {
+    const data = await api('/api/transmisiones');
+    transItems = data;
+    if (!transItems.length) {
+      wrap.innerHTML = `<p style="color:var(--muted);font-size:.85rem;padding:.5rem 0">Sin transmisiones aún.</p>`;
+      return;
+    }
+    wrap.innerHTML = `
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>#</th><th>Título</th><th>Categoría</th><th>Destacada</th><th>Activo</th><th>Orden</th><th>Fecha</th><th></th></tr></thead>
+          <tbody>
+            ${transItems.map(item => `
+              <tr id="trans-row-${item.id}">
+                <td>${item.id}</td>
+                <td>${escapeHtml(item.titulo)}</td>
+                <td>${escapeHtml(item.categoria)}</td>
+                <td>${item.destacada ? '⭐' : '—'}</td>
+                <td>${item.activo ? '✅' : '❌'}</td>
+                <td>${item.orden}</td>
+                <td>${timeAgo(item.fecha_creacion)}</td>
+                <td class="admin-actions-cell">
+                  <button class="admin-btn-rol" onclick="editarTrans(${item.id})">✏️</button>
+                  <button class="admin-btn-del" onclick="eliminarTrans(${item.id})">🗑</button>
+                </td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  } catch(e) {
+    wrap.innerHTML = `<p style="color:var(--error)">${escapeHtml(e.message)}</p>`;
+  }
+}
+
+async function guardarTrans() {
+  const editId = document.getElementById('tf-edit-id').value;
+  const payload = {
+    titulo:      document.getElementById('tf-titulo').value.trim(),
+    descripcion: document.getElementById('tf-descripcion').value.trim(),
+    url:         document.getElementById('tf-url').value.trim(),
+    categoria:   document.getElementById('tf-categoria').value,
+    destacada:   document.getElementById('tf-destacada').checked,
+    activo:      document.getElementById('tf-activo').checked,
+    orden:       parseInt(document.getElementById('tf-orden').value) || 0
+  };
+  if (!payload.titulo || !payload.url) { toast('⚠️ Título y URL son obligatorios'); return; }
+  try {
+    if (editId) {
+      await api(`/api/transmisiones/${editId}`, 'PUT', payload);
+      toast('✅ Actualizado');
+    } else {
+      await api('/api/transmisiones', 'POST', payload);
+      toast('✅ Agregado');
+    }
+    limpiarFormTrans();
+    cargarAdminTrans();
+  } catch(e) { toast(e.message); }
+}
+
+function editarTrans(id) {
+  const item = transItems.find(i => i.id === id);
+  if (!item) return;
+  document.getElementById('tf-titulo').value      = item.titulo;
+  document.getElementById('tf-descripcion').value = item.descripcion || '';
+  document.getElementById('tf-url').value         = item.url;
+  document.getElementById('tf-categoria').value   = item.categoria;
+  document.getElementById('tf-destacada').checked = !!item.destacada;
+  document.getElementById('tf-activo').checked    = !!item.activo;
+  document.getElementById('tf-orden').value       = item.orden || 0;
+  document.getElementById('tf-edit-id').value     = id;
+  document.getElementById('tf-btn-txt').textContent = '💾 Guardar cambios';
+  document.getElementById('trans-form').scrollIntoView({ behavior: 'smooth' });
+}
+
+function limpiarFormTrans() {
+  document.getElementById('tf-titulo').value = '';
+  document.getElementById('tf-descripcion').value = '';
+  document.getElementById('tf-url').value = '';
+  document.getElementById('tf-categoria').value = 'noticias';
+  document.getElementById('tf-destacada').checked = false;
+  document.getElementById('tf-activo').checked = true;
+  document.getElementById('tf-orden').value = '0';
+  document.getElementById('tf-edit-id').value = '';
+  document.getElementById('tf-btn-txt').textContent = '➕ Agregar';
+}
+
+async function eliminarTrans(id) {
+  if (!confirm('¿Eliminar esta transmisión?')) return;
+  try {
+    await api(`/api/transmisiones/${id}`, 'DELETE');
+    document.getElementById(`trans-row-${id}`)?.remove();
+    transItems = transItems.filter(i => i.id !== id);
+    toast('🗑 Eliminado');
+  } catch(e) { toast(e.message); }
+}
+
+// ===== CONFIGURACIÓN LOGO =====
 function mostrarNombreArchivo(input) {
   const fileName = input.files[0]?.name || 'Ningún archivo seleccionado';
   document.getElementById('logo-file-name').textContent = fileName;
@@ -361,14 +502,11 @@ async function subirLogo() {
     toast('⚠️ Selecciona una imagen primero');
     return;
   }
-
   const btn = document.getElementById('btn-subir-logo');
   btn.classList.add('loading');
   btn.disabled = true;
-
   const formData = new FormData();
   formData.append('logo', input.files[0]);
-
   try {
     const csrf = await getCsrfToken();
     const res = await fetch('/admin/logo', {
@@ -379,23 +517,16 @@ async function subirLogo() {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error al subir el logo');
-    
-    // Actualizar la vista previa
     const preview = document.getElementById('logo-preview-img');
     if (data.logo_url) {
       preview.src = data.logo_url;
+      toast('✅ Logo actualizado');
     } else {
-      // Si no devuelve URL, recargar la página para actualizar el contexto
       toast('✅ Logo actualizado. Recargando...');
       setTimeout(() => location.reload(), 800);
-      return;
     }
-    
-    toast('✅ Logo actualizado correctamente');
-    // Limpiar el input para que se pueda volver a seleccionar el mismo archivo
     input.value = '';
     document.getElementById('logo-file-name').textContent = 'Ningún archivo seleccionado';
-    
   } catch(e) {
     toast('Error: ' + e.message);
   } finally {
@@ -403,5 +534,10 @@ async function subirLogo() {
     btn.disabled = false;
   }
 }
+
+// ===== INICIO =====
+document.addEventListener('DOMContentLoaded', function() {
+  cargarAdminPubs();
+});
 </script>
 {% endblock %}

@@ -8,25 +8,23 @@
     </svg> Volver
   </button>
   <h2 class="dir-title">📺 Transmisiones en vivo</h2>
-  <p class="dir-sub">Canales y eventos en vivo de México y la región</p>
+  <p class="dir-sub">Selecciona un canal para ver su transmisión en vivo</p>
 </div>
 
-<!-- ============================================ -->
-<!-- REPRODUCTOR (iframe) - SOLO PARA MILENIO    -->
-<!-- ============================================ -->
+<!-- ===== REPRODUCTOR ===== -->
 <div class="youtube-live-wrap" style="margin-bottom:1.5rem;">
   <div class="youtube-live-header">
     <span class="youtube-live-dot"></span>
     <div class="youtube-live-info">
-      <span class="youtube-live-title">Milenio Noticias</span>
-      <span class="youtube-live-sub">🔴 En vivo las 24 horas</span>
+      <span class="youtube-live-title" id="reproductor-titulo">Cargando...</span>
+      <span class="youtube-live-sub" id="reproductor-sub">🔴 En vivo</span>
     </div>
   </div>
   <div class="youtube-live-video">
     <iframe
       id="reproductor"
-      src="https://www.youtube.com/embed/oPy8a-TCjzA"
-      title="Milenio Noticias - Transmisión en vivo"
+      src=""
+      title="Transmisión en vivo"
       frameborder="0"
       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
       referrerpolicy="strict-origin-when-cross-origin"
@@ -35,175 +33,120 @@
   </div>
 </div>
 
-<!-- ============================================ -->
-<!-- LISTA DE CANALES                             -->
-<!-- ============================================ -->
+<!-- ===== LISTA DE TRANSMISIONES ===== -->
 <div id="transmisiones-wrap">
-
-  <!-- SECCIÓN: NOTICIAS -->
-  <div class="dir-grupo">
-    <div class="dir-grupo-titulo">📰 Noticias</div>
-    <div class="dir-lista">
-
-      <!-- Milenio Noticias (reproductor) -->
-      <div class="dir-item">
-        <div class="dir-ico">📺</div>
-        <div class="dir-info">
-          <div class="dir-nombre">Milenio Noticias</div>
-          <div class="dir-dato">🔴 En vivo las 24 horas</div>
-        </div>
-        <button class="dir-tel-btn" style="background:rgba(239,68,68,.15);color:#ef4444;border-color:rgba(239,68,68,.3);cursor:pointer;flex-shrink:0;" onclick="document.getElementById('reproductor').src='https://www.youtube.com/embed/oPy8a-TCjzA'">
-          <span class="live-dot" style="display:inline-block;width:8px;height:8px;background:#ef4444;border-radius:50%;margin-right:4px;animation:pulse-dot 1.2s ease-in-out infinite;"></span>
-          Ver ahora
-        </button>
-      </div>
-
-      <!-- ADN Noticias -->
-      <div class="dir-item">
-        <div class="dir-ico">📺</div>
-        <div class="dir-info">
-          <div class="dir-nombre">ADN Noticias</div>
-          <div class="dir-dato">🔴 Noticias de México y el mundo</div>
-        </div>
-        <a href="https://www.youtube.com/@adnnoticias/live" target="_blank" class="dir-tel-btn" style="background:rgba(239,68,68,.15);color:#ef4444;border-color:rgba(239,68,68,.3);text-decoration:none;flex-shrink:0;">
-          <span class="live-dot" style="display:inline-block;width:8px;height:8px;background:#ef4444;border-radius:50%;margin-right:4px;animation:pulse-dot 1.2s ease-in-out infinite;"></span>
-          Ver en YouTube
-        </a>
-      </div>
-
-      <!-- Azteca Noticias -->
-      <div class="dir-item">
-        <div class="dir-ico">📺</div>
-        <div class="dir-info">
-          <div class="dir-nombre">Azteca Noticias</div>
-          <div class="dir-dato">🔴 Información en vivo</div>
-        </div>
-        <a href="https://www.youtube.com/@AztecaNoticias/live" target="_blank" class="dir-tel-btn" style="background:rgba(239,68,68,.15);color:#ef4444;border-color:rgba(239,68,68,.3);text-decoration:none;flex-shrink:0;">
-          <span class="live-dot" style="display:inline-block;width:8px;height:8px;background:#ef4444;border-radius:50%;margin-right:4px;animation:pulse-dot 1.2s ease-in-out infinite;"></span>
-          Ver en YouTube
-        </a>
-      </div>
-
-      <!-- N+ FORO -->
-      <div class="dir-item">
-        <div class="dir-ico">📺</div>
-        <div class="dir-info">
-          <div class="dir-nombre">N+ FORO</div>
-          <div class="dir-dato">🔴 Noticias en vivo 24/7</div>
-        </div>
-        <a href="https://www.youtube.com/@nmas/live" target="_blank" class="dir-tel-btn" style="background:rgba(239,68,68,.15);color:#ef4444;border-color:rgba(239,68,68,.3);text-decoration:none;flex-shrink:0;">
-          <span class="live-dot" style="display:inline-block;width:8px;height:8px;background:#ef4444;border-radius:50%;margin-right:4px;animation:pulse-dot 1.2s ease-in-out infinite;"></span>
-          Ver en YouTube
-        </a>
-      </div>
-
-      <!-- Canal Once -->
-      <div class="dir-item">
-        <div class="dir-ico">📺</div>
-        <div class="dir-info">
-          <div class="dir-nombre">Canal Once</div>
-          <div class="dir-dato">🔴 Once Noticias</div>
-        </div>
-        <a href="https://www.youtube.com/@CanalOnceIPN/live" target="_blank" class="dir-tel-btn" style="background:rgba(239,68,68,.15);color:#ef4444;border-color:rgba(239,68,68,.3);text-decoration:none;flex-shrink:0;">
-          <span class="live-dot" style="display:inline-block;width:8px;height:8px;background:#ef4444;border-radius:50%;margin-right:4px;animation:pulse-dot 1.2s ease-in-out infinite;"></span>
-          Ver en YouTube
-        </a>
-      </div>
-
-      <!-- UnoTV -->
-      <div class="dir-item">
-        <div class="dir-ico">📺</div>
-        <div class="dir-info">
-          <div class="dir-nombre">UnoTV</div>
-          <div class="dir-dato">🔴 Noticias relevantes de México</div>
-        </div>
-        <a href="https://www.youtube.com/@unotv/live" target="_blank" class="dir-tel-btn" style="background:rgba(239,68,68,.15);color:#ef4444;border-color:rgba(239,68,68,.3);text-decoration:none;flex-shrink:0;">
-          <span class="live-dot" style="display:inline-block;width:8px;height:8px;background:#ef4444;border-radius:50%;margin-right:4px;animation:pulse-dot 1.2s ease-in-out infinite;"></span>
-          Ver en YouTube
-        </a>
-      </div>
-
-      <!-- Multimedios -->
-      <div class="dir-item">
-        <div class="dir-ico">📺</div>
-        <div class="dir-info">
-          <div class="dir-nombre">Multimedios</div>
-          <div class="dir-dato">🔴 Telediario en vivo</div>
-        </div>
-        <a href="https://www.youtube.com/@multimedios/live" target="_blank" class="dir-tel-btn" style="background:rgba(239,68,68,.15);color:#ef4444;border-color:rgba(239,68,68,.3);text-decoration:none;flex-shrink:0;">
-          <span class="live-dot" style="display:inline-block;width:8px;height:8px;background:#ef4444;border-radius:50%;margin-right:4px;animation:pulse-dot 1.2s ease-in-out infinite;"></span>
-          Ver en YouTube
-        </a>
-      </div>
-
-    </div>
+  <div id="transmisiones-lista" class="trans-lista">
+    <!-- Cargado dinámicamente -->
   </div>
-
-  <!-- SECCIÓN: DEPORTES -->
-  <div class="dir-grupo">
-    <div class="dir-grupo-titulo">⚽ Deportes</div>
-    <div class="dir-lista">
-
-      <!-- TUDN México -->
-      <div class="dir-item">
-        <div class="dir-ico">⚽</div>
-        <div class="dir-info">
-          <div class="dir-nombre">TUDN México</div>
-          <div class="dir-dato">🔴 Fútbol mexicano y eventos internacionales</div>
-        </div>
-        <a href="https://www.youtube.com/@TUDNMEXICO/live" target="_blank" class="dir-tel-btn" style="background:rgba(239,68,68,.15);color:#ef4444;border-color:rgba(239,68,68,.3);text-decoration:none;flex-shrink:0;">
-          <span class="live-dot" style="display:inline-block;width:8px;height:8px;background:#ef4444;border-radius:50%;margin-right:4px;animation:pulse-dot 1.2s ease-in-out infinite;"></span>
-          Ver en YouTube
-        </a>
-      </div>
-
-      <!-- TV Azteca Deportes -->
-      <div class="dir-item">
-        <div class="dir-ico">⚽</div>
-        <div class="dir-info">
-          <div class="dir-nombre">TV Azteca Deportes</div>
-          <div class="dir-dato">🔴 Liga MX y más</div>
-        </div>
-        <a href="https://www.youtube.com/@aztecadeportes/live" target="_blank" class="dir-tel-btn" style="background:rgba(239,68,68,.15);color:#ef4444;border-color:rgba(239,68,68,.3);text-decoration:none;flex-shrink:0;">
-          <span class="live-dot" style="display:inline-block;width:8px;height:8px;background:#ef4444;border-radius:50%;margin-right:4px;animation:pulse-dot 1.2s ease-in-out infinite;"></span>
-          Ver en YouTube
-        </a>
-      </div>
-
-      <!-- Mediotiempo -->
-      <div class="dir-item">
-        <div class="dir-ico">⚽</div>
-        <div class="dir-info">
-          <div class="dir-nombre">Mediotiempo</div>
-          <div class="dir-dato">🔴 Fútbol mexicano, Liga MX</div>
-        </div>
-        <a href="https://www.youtube.com/@mediotiempo/live" target="_blank" class="dir-tel-btn" style="background:rgba(239,68,68,.15);color:#ef4444;border-color:rgba(239,68,68,.3);text-decoration:none;flex-shrink:0;">
-          <span class="live-dot" style="display:inline-block;width:8px;height:8px;background:#ef4444;border-radius:50%;margin-right:4px;animation:pulse-dot 1.2s ease-in-out infinite;"></span>
-          Ver en YouTube
-        </a>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- SECCIÓN: EVENTOS ESPECIALES -->
-  <div class="dir-grupo">
-    <div class="dir-grupo-titulo">🎥 Eventos especiales</div>
-    <div class="dir-lista">
-      <div class="dir-item">
-        <div class="dir-ico">🎪</div>
-        <div class="dir-info">
-          <div class="dir-nombre">Feria del Pueblo 2026</div>
-          <div class="dir-dato">📅 15 de agosto · 6:00pm</div>
-        </div>
-        <a href="#" class="dir-tel-btn" style="background:rgba(59,130,246,.15);color:#3b82f6;border-color:rgba(59,130,246,.3);">
-          Próximo
-        </a>
-      </div>
-    </div>
-  </div>
-
 </div>
+
+<script>
+// ===== FUNCIÓN PARA OBTENER URL DE EMBED =====
+function obtenerEmbedUrl(url) {
+  url = url.trim();
+  // Si es un ID de video de 11 caracteres
+  if (url.length === 11 && /^[a-zA-Z0-9_-]+$/.test(url) && url.includes('-')) {
+    return `https://www.youtube.com/embed/${url}`;
+  }
+  // Si es una URL de YouTube
+  if (url.includes('youtube.com/watch?v=')) {
+    const videoId = url.split('v=')[1].split('&')[0];
+    return `https://www.youtube.com/embed/${videoId}`;
+  }
+  if (url.includes('youtu.be/')) {
+    const videoId = url.split('youtu.be/')[1].split('?')[0];
+    return `https://www.youtube.com/embed/${videoId}`;
+  }
+  if (url.includes('youtube.com/embed/')) {
+    return url;
+  }
+  if (url.includes('youtube.com/live_stream?channel=')) {
+    return url;
+  }
+  // Si no, devolver la URL tal cual
+  return url;
+}
+
+// ===== CARGAR TRANSMISIONES =====
+async function cargarTransmisiones() {
+  const wrap = document.getElementById('transmisiones-lista');
+  wrap.innerHTML = `<div class="spinner-feed"><span></span><span></span><span></span></div>`;
+  try {
+    const transmisiones = await api('/api/transmisiones/publicas');
+    if (!transmisiones.length) {
+      wrap.innerHTML = `
+        <div class="empty">
+          <div class="empty-icon">📺</div>
+          <p>No hay transmisiones disponibles en este momento.</p>
+        </div>`;
+      return;
+    }
+
+    // Encontrar la primera destacada para el reproductor por defecto
+    const destacada = transmisiones.find(t => t.destacada) || transmisiones[0];
+    const embedUrl = obtenerEmbedUrl(destacada.url);
+    document.getElementById('reproductor').src = embedUrl;
+    document.getElementById('reproductor-titulo').textContent = destacada.titulo;
+    document.getElementById('reproductor-sub').textContent = destacada.descripcion || '🔴 En vivo';
+
+    // Agrupar por categoría
+    const categorias = {
+      noticias: { icono: '📰', label: 'Noticias', items: [] },
+      deportes: { icono: '⚽', label: 'Deportes', items: [] },
+      eventos: { icono: '🎥', label: 'Eventos especiales', items: [] }
+    };
+
+    transmisiones.forEach(t => {
+      if (categorias[t.categoria]) {
+        categorias[t.categoria].items.push(t);
+      }
+    });
+
+    let html = '';
+    for (const [key, cat] of Object.entries(categorias)) {
+      if (!cat.items.length) continue;
+      html += `
+        <div class="dir-grupo">
+          <div class="dir-grupo-titulo">${cat.icono} ${cat.label}</div>
+          <div class="dir-lista">
+            ${cat.items.map(t => `
+              <div class="dir-item">
+                <div class="dir-ico">${cat.icono}</div>
+                <div class="dir-info">
+                  <div class="dir-nombre">${escapeHtml(t.titulo)}</div>
+                  ${t.descripcion ? `<div class="dir-dato">${escapeHtml(t.descripcion)}</div>` : ''}
+                  ${t.destacada ? `<span style="color:#f59e0b;font-size:.7rem;font-weight:600;">⭐ Destacada</span>` : ''}
+                </div>
+                <button class="dir-tel-btn" style="background:rgba(239,68,68,.15);color:#ef4444;border-color:rgba(239,68,68,.3);cursor:pointer;" 
+                        onclick="cambiarTransmision('${escapeHtml(t.url)}', '${escapeHtml(t.titulo)}', '${escapeHtml(t.descripcion || '🔴 En vivo')}')">
+                  <span class="live-dot" style="display:inline-block;width:8px;height:8px;background:#ef4444;border-radius:50%;margin-right:4px;animation:pulse-dot 1.2s ease-in-out infinite;"></span>
+                  Ver ahora
+                </button>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    wrap.innerHTML = html;
+
+  } catch(e) {
+    wrap.innerHTML = `<div class="empty"><p>${escapeHtml(e.message)}</p></div>`;
+  }
+}
+
+// ===== CAMBIAR TRANSMISIÓN EN EL REPRODUCTOR =====
+function cambiarTransmision(url, titulo, descripcion) {
+  const embedUrl = obtenerEmbedUrl(url);
+  document.getElementById('reproductor').src = embedUrl;
+  document.getElementById('reproductor-titulo').textContent = titulo;
+  document.getElementById('reproductor-sub').textContent = descripcion || '🔴 En vivo';
+}
+
+// ===== INICIO =====
+document.addEventListener('DOMContentLoaded', cargarTransmisiones);
+</script>
 
 <style>
   @keyframes pulse-dot {
@@ -223,9 +166,9 @@
     cursor: pointer;
     border: none;
     font-family: inherit;
-    font-size: 0.78rem;
+    font-size: 0.8rem;
     font-weight: 600;
-    padding: 0.4rem 0.7rem;
+    padding: 0.45rem 0.75rem;
     border-radius: 8px;
     display: inline-flex;
     align-items: center;
@@ -237,49 +180,10 @@
   .dir-tel-btn:hover {
     opacity: 0.85;
   }
-  /* Ajuste para que los botones no se amontonen */
-  .dir-item {
+  .trans-lista {
     display: flex;
-    align-items: center;
-    gap: 0.85rem;
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid var(--border);
-    transition: background 0.15s;
-    flex-wrap: wrap;
-  }
-  .dir-item:hover {
-    background: var(--bg3);
-  }
-  .dir-ico {
-    font-size: 1.3rem;
-    flex-shrink: 0;
-    width: 32px;
-    text-align: center;
-  }
-  .dir-info {
-    flex: 1;
-    min-width: 0;
-  }
-  .dir-nombre {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: var(--text);
-  }
-  .dir-dato {
-    font-size: 0.76rem;
-    color: var(--muted);
-    margin-top: 0.15rem;
-  }
-  /* En pantallas pequeñas, el botón ocupa todo el ancho */
-  @media (max-width: 500px) {
-    .dir-item {
-      flex-wrap: wrap;
-    }
-    .dir-tel-btn {
-      width: 100%;
-      justify-content: center;
-      margin-top: 0.3rem;
-    }
+    flex-direction: column;
+    gap: 1rem;
   }
 </style>
 {% endblock %}

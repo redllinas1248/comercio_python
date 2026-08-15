@@ -2033,3 +2033,69 @@ body {
   font-size: 0.8rem;
   color: var(--muted);
 }
+/* ===== ADMIN: TRANSMISIONES ===== */
+.trans-admin-form {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+.trans-form-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.65rem;
+}
+.trans-form-grid .p-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.trans-form-grid .p-field label {
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+.trans-form-grid .p-field input,
+.trans-form-grid .p-field select {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.9rem;
+  padding: 0.65rem 0.85rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.trans-form-grid .p-field input:focus,
+.trans-form-grid .p-field select:focus {
+  border-color: var(--accent2);
+}
+.trans-form-grid .p-field input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent2);
+  cursor: pointer;
+}
+.trans-form-grid .p-field label:has(input[type="checkbox"]) {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+.trans-form-grid small {
+  color: var(--muted);
+  font-size: 0.7rem;
+  margin-top: 0.2rem;
+}
+
+@media (max-width: 600px) {
+  .trans-form-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .trans-form-grid .p-field[style*="span 3"],
+  .trans-form-grid .p-field[style*="span 4"] {
+    grid-column: span 2;
+  }
+}

@@ -83,6 +83,7 @@ from routes.mensajes import msg_bp
 from routes.notificaciones import notif_bp
 from routes.directorio import dir_bp
 from routes.views import views_bp
+from routes.transmisiones import transmisiones_bp
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(pub_bp)
@@ -92,10 +93,17 @@ app.register_blueprint(msg_bp)
 app.register_blueprint(notif_bp)
 app.register_blueprint(dir_bp)
 app.register_blueprint(views_bp)
+app.register_blueprint(transmisiones_bp)
 
-# ===== SCHEDULER: LIMPIEZA AUTOMÁTICA DE PUBLICACIONES =====
+
+# ===== RUTA PÚBLICA DE TRANSMISIONES =====
+@views_bp.route('/transmisiones')
+def transmisiones():
+    return render_template('transmisiones.html')
+
+
+# ===== SCHEDULER: LIMPIEZA AUTOMÁTICA =====
 def limpieza_programada():
-    """Ejecuta la limpieza de publicaciones antiguas en segundo plano."""
     with app.app_context():
         try:
             eliminadas = limpiar_publicaciones_antiguas()
@@ -103,9 +111,7 @@ def limpieza_programada():
         except Exception as e:
             app.logger.error(f"Error en limpieza programada: {e}")
 
-# Iniciar el scheduler al arrancar la aplicación
 scheduler = BackgroundScheduler()
-# Ejecutar cada 24 horas a las 3:00 AM (hora del servidor)
 scheduler.add_job(
     limpieza_programada,
     'cron',
@@ -116,7 +122,6 @@ scheduler.add_job(
 )
 scheduler.start()
 
-# Detener el scheduler al cerrar la app
 import atexit
 atexit.register(lambda: scheduler.shutdown())
 
