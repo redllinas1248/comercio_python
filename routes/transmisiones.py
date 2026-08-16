@@ -2,12 +2,12 @@ from flask import Blueprint, request, jsonify, render_template, current_app
 from db import get_db
 from security import require_api_admin, get_current_user
 import html
+from routes.push import enviar_notificacion_a_todos
 
 transmisiones_bp = Blueprint('transmisiones', __name__, url_prefix='/api/transmisiones')
 
 
 def validar_url(url):
-    """Valida que la URL sea de YouTube o un enlace válido."""
     if not url:
         return False
     url = url.strip()
@@ -21,7 +21,6 @@ def validar_url(url):
 
 
 def obtener_embed_url(url):
-    """Convierte una URL o ID de YouTube a URL de embed."""
     url = url.strip()
     if len(url) == 11 and url.isalnum() and '-' in url:
         return f"https://www.youtube.com/embed/{url}"
@@ -134,6 +133,17 @@ def crear():
     nuevo_id = cur.lastrowid
     cur.close()
     
+    # Enviar notificación push si la transmisión está activa o destacada
+    if activo or destacada:
+        try:
+            enviar_notificacion_a_todos(
+                title=f"📺 {titulo}",
+                body=descripcion or "¡Transmisión en vivo!",
+                url="/transmisiones"
+            )
+        except Exception as e:
+            current_app.logger.error(f"Error enviando notificación: {e}")
+    
     return jsonify({'mensaje': 'Transmisión creada', 'id': nuevo_id}), 201
 
 
@@ -143,6 +153,16 @@ def actualizar(item_id):
     if error:
         return error
     data = request.get_json(silent=True) or {}
+    
+    # Obtener estado actual antes de actualizar
+    db = get_db()
+    cur = db.connection.cursor()
+    cur.execute("SELECT activo, destacada, titulo FROM transmisiones WHERE id = %s", (item_id,))
+    current = cur.fetchone()
+    cur.close()
+    if not current:
+        return jsonify({'error': 'No encontrada'}), 404
+    current_activo, current_destacada, current_titulo = current
     
     campos_permitidos = ['titulo', 'descripcion', 'url', 'categoria', 'destacada', 'activo', 'orden']
     updates = {}
@@ -172,7 +192,6 @@ def actualizar(item_id):
         return jsonify({'error': 'Nada que actualizar'}), 400
     
     if updates.get('destacada') == 1:
-        db = get_db()
         cur = db.connection.cursor()
         cur.execute("UPDATE transmisiones SET destacada = 0 WHERE id != %s", (item_id,))
         db.connection.commit()
@@ -180,15 +199,28 @@ def actualizar(item_id):
     
     set_clause = ', '.join(f"{k} = %s" for k in updates)
     valores = list(updates.values()) + [item_id]
-    # Actualizar manualmente fecha_actualizacion
+    # Agregar actualización manual de fecha_actualizacion
     set_clause += ", fecha_actualizacion = NOW()"
-    valores = list(updates.values()) + [item_id]
     
-    db = get_db()
     cur = db.connection.cursor()
     cur.execute(f"UPDATE transmisiones SET {set_clause} WHERE id = %s", valores)
     db.connection.commit()
     cur.close()
+    
+    # Verificar si se activó o destacó después de la actualización
+    nuevo_activo = updates.get('activo', current_activo)
+    nuevo_destacada = updates.get('destacada', current_destacada)
+    nuevo_titulo = updates.get('titulo', current_titulo)
+    
+    if (nuevo_activo and not current_activo) or (nuevo_destacada and not current_destacada):
+        try:
+            enviar_notificacion_a_todos(
+                title=f"📺 {nuevo_titulo}",
+                body=data.get('descripcion', '¡Transmisión en vivo!'),
+                url="/transmisiones"
+            )
+        except Exception as e:
+            current_app.logger.error(f"Error enviando notificación: {e}")
     
     return jsonify({'mensaje': 'Transmisión actualizada'})
 

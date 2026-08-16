@@ -1,15 +1,24 @@
 from flask import Blueprint, render_template, redirect, url_for, request, jsonify, current_app
 from db import get_db
-from security import get_current_user
+from security import get_current_user, require_api_admin
 from werkzeug.utils import secure_filename
 import cloudinary.uploader
 import os
 from PIL import Image
 import io
+import json
+from pywebpush import webpush, WebPushException
 
 views_bp = Blueprint('views', __name__)
 
 DEFAULT_LOGO = '/static/img/banner.svg'
+
+# Claves VAPID (deben estar en variables de entorno)
+VAPID_PRIVATE_KEY = os.environ.get('VAPID_PRIVATE_KEY', '')
+VAPID_PUBLIC_KEY = os.environ.get('VAPID_PUBLIC_KEY', '')
+VAPID_CLAIMS = {
+    'sub': 'mailto:tu-email@example.com'  # CAMBIA ESTO POR TU EMAIL
+}
 
 
 def _config_value(clave, default=None):
@@ -163,16 +172,14 @@ def subir_logo():
     if size > MAX_SIZE:
         return jsonify({'error': 'La imagen excede el tamaño máximo de 2 MB.'}), 400
 
-    # Validar contenido real usando Pillow (excepto SVG que no es imagen raster)
     if extension != 'svg':
         try:
             img_bytes = archivo.read()
             Image.open(io.BytesIO(img_bytes)).verify()
-            archivo.seek(0)  # resetear puntero
+            archivo.seek(0)
         except Exception:
             return jsonify({'error': 'El archivo no es una imagen válida.'}), 400
     else:
-        # Para SVG, validar que empiece con '<svg' o similar (simple)
         archivo.seek(0)
         contenido = archivo.read(1024).decode('utf-8', errors='ignore')
         archivo.seek(0)
@@ -216,7 +223,6 @@ def emergencias():
     return render_template('emergencias.html')
 
 
-# ===== RUTA PÚBLICA DE TRANSMISIONES (ÚNICA) =====
 @views_bp.route('/transmisiones')
 def transmisiones():
     return render_template('transmisiones.html')
@@ -252,3 +258,102 @@ def estadisticas():
 @views_bp.route('/offline')
 def offline():
     return render_template('offline.html')
+
+
+# ============================================================
+# ===== NOTIFICACIONES PUSH ===================================
+# ============================================================
+
+@views_bp.route('/api/push/vapid_public_key', methods=['GET'])
+def vapid_public_key():
+    return jsonify({'public_key': VAPID_PUBLIC_KEY})
+
+
+@views_bp.route('/api/push/subscribe', methods=['POST'])
+def push_subscribe():
+    data = request.get_json(silent=True) or {}
+    endpoint = data.get('endpoint')
+    auth_key = data.get('keys', {}).get('auth')
+    p256dh_key = data.get('keys', {}).get('p256dh')
+    user_agent = request.headers.get('User-Agent', '')
+
+    if not endpoint or not auth_key or not p256dh_key:
+        return jsonify({'error': 'Datos incompletos'}), 400
+
+    db = get_db()
+    cur = db.connection.cursor()
+    cur.execute("""
+        INSERT INTO push_subscriptions (endpoint, auth_key, p256dh_key, user_agent)
+        VALUES (%s, %s, %s, %s)
+        ON DUPLICATE KEY UPDATE auth_key = VALUES(auth_key), p256dh_key = VALUES(p256dh_key), user_agent = VALUES(user_agent)
+    """, (endpoint, auth_key, p256dh_key, user_agent))
+    db.connection.commit()
+    cur.close()
+    return jsonify({'mensaje': 'Suscripción guardada'})
+
+
+@views_bp.route('/api/push/unsubscribe', methods=['POST'])
+def push_unsubscribe():
+    data = request.get_json(silent=True) or {}
+    endpoint = data.get('endpoint')
+    if not endpoint:
+        return jsonify({'error': 'Endpoint requerido'}), 400
+    db = get_db()
+    cur = db.connection.cursor()
+    cur.execute("DELETE FROM push_subscriptions WHERE endpoint = %s", (endpoint,))
+    db.connection.commit()
+    cur.close()
+    return jsonify({'mensaje': 'Suscripción eliminada'})
+
+
+@views_bp.route('/api/push/send', methods=['POST'])
+@admin_required
+def push_send():
+    data = request.get_json(silent=True) or {}
+    title = data.get('title', 'Nueva transmisión en vivo')
+    body = data.get('body', '¡Estamos en vivo!')
+    url = data.get('url', '/transmisiones')
+    icon = data.get('icon', '/static/img/icon-192.png')
+
+    if not VAPID_PRIVATE_KEY or not VAPID_PUBLIC_KEY:
+        return jsonify({'error': 'Claves VAPID no configuradas'}), 500
+
+    db = get_db()
+    cur = db.connection.cursor()
+    cur.execute("SELECT endpoint, auth_key, p256dh_key FROM push_subscriptions")
+    subscriptions = cur.fetchall()
+    cur.close()
+
+    if not subscriptions:
+        return jsonify({'mensaje': 'No hay suscriptores'}), 200
+
+    payload = json.dumps({
+        'title': title,
+        'body': body,
+        'icon': icon,
+        'url': url
+    })
+
+    success_count = 0
+    for endpoint, auth, p256dh in subscriptions:
+        try:
+            webpush(
+                subscription_info={
+                    'endpoint': endpoint,
+                    'keys': {'auth': auth, 'p256dh': p256dh}
+                },
+                data=payload,
+                vapid_private_key=VAPID_PRIVATE_KEY,
+                vapid_claims=VAPID_CLAIMS
+            )
+            success_count += 1
+        except WebPushException as e:
+            if e.response and e.response.status_code in [410, 404]:
+                cur = db.connection.cursor()
+                cur.execute("DELETE FROM push_subscriptions WHERE endpoint = %s", (endpoint,))
+                db.connection.commit()
+                cur.close()
+            else:
+                current_app.logger.error(f"Error enviando notificación: {e}")
+
+    return jsonify({'mensaje': f'Notificaciones enviadas a {success_count} suscriptores'})
