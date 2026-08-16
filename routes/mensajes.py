@@ -16,36 +16,34 @@ def conversaciones():
     db = get_db()
     cur = db.cursor()
 
-    # Consulta adaptada para PostgreSQL (sin alias en subconsultas)
+    # Obtener todos los mensajes donde el usuario esté involucrado, ordenados por fecha descendente
     cur.execute("""
-        SELECT DISTINCT
-            CASE WHEN emisor = %s THEN receptor ELSE emisor END AS contacto,
-            (SELECT mensaje FROM mensajes m2
-             WHERE (m2.emisor = %s AND m2.receptor = contacto_aux)
-                OR (m2.receptor = %s AND m2.emisor = contacto_aux)
-             ORDER BY fecha DESC LIMIT 1) AS ultimo_mensaje,
-            (SELECT fecha FROM mensajes m3
-             WHERE (m3.emisor = %s AND m3.receptor = contacto_aux)
-                OR (m3.receptor = %s AND m3.emisor = contacto_aux)
-             ORDER BY fecha DESC LIMIT 1) AS ultima_fecha
-        FROM (
-            SELECT
-                CASE WHEN emisor = %s THEN receptor ELSE emisor END AS contacto_aux
-            FROM mensajes
-            WHERE emisor = %s OR receptor = %s
-        ) AS subconsulta
-    """, (telefono,) * 9)
+        SELECT emisor, receptor, mensaje, fecha
+        FROM mensajes
+        WHERE emisor = %s OR receptor = %s
+        ORDER BY fecha DESC
+    """, (telefono, telefono))
 
     rows = cur.fetchall()
     cur.close()
 
-    result = []
-    for contacto, ultimo, fecha in rows:
-        result.append({
-            'contacto': contacto,
-            'ultimo_mensaje': ultimo,
-            'fecha': str(fecha)
-        })
+    # Diccionario para almacenar el último mensaje de cada contacto
+    contacts = {}
+    for emisor, receptor, mensaje, fecha in rows:
+        # Determinar quién es el otro usuario (el contacto)
+        contacto = receptor if emisor == telefono else emisor
+        # Si aún no hemos guardado este contacto, guardar el primer mensaje (que es el más reciente)
+        if contacto not in contacts:
+            contacts[contacto] = {
+                'contacto': contacto,
+                'ultimo_mensaje': mensaje,
+                'fecha': str(fecha)
+            }
+
+    # Convertir a lista y ordenar por fecha descendente (más reciente primero)
+    result = list(contacts.values())
+    result.sort(key=lambda x: x['fecha'], reverse=True)
+
     return jsonify(result)
 
 
@@ -67,6 +65,7 @@ def hilo(receptor):
            OR (emisor = %s AND receptor = %s)
         ORDER BY fecha ASC
     """, (emisor, receptor, receptor, emisor))
+
     rows = cur.fetchall()
     cur.close()
 
