@@ -2,7 +2,6 @@ from flask import Blueprint, request, jsonify, render_template, current_app
 from db import get_db
 from security import require_api_admin, get_current_user
 import html
-from datetime import datetime
 
 transmisiones_bp = Blueprint('transmisiones', __name__, url_prefix='/api/transmisiones')
 
@@ -39,7 +38,6 @@ def obtener_embed_url(url):
     return url
 
 
-# ===== RUTAS PÚBLICAS =====
 @transmisiones_bp.route('/publicas', methods=['GET'])
 def listar_publicas():
     db = get_db()
@@ -76,12 +74,6 @@ def obtener_destacada():
     return jsonify(dict(zip(keys, row)))
 
 
-@transmisiones_bp.route('/vista')
-def vista_transmisiones():
-    return render_template('transmisiones.html')
-
-
-# ===== CRUD ADMIN =====
 @transmisiones_bp.route('', methods=['GET'])
 def listar_admin():
     _, error = require_api_admin()
@@ -97,15 +89,9 @@ def listar_admin():
     rows = cur.fetchall()
     cur.close()
     keys = ['id', 'titulo', 'descripcion', 'url', 'categoria', 'destacada', 'activo', 'orden', 'fecha_creacion']
-    result = []
-    for row in rows:
-        item = dict(zip(keys, row))
-        # Si fecha_creacion es None o no es datetime, dejamos como string vacío
-        if item['fecha_creacion']:
-            item['fecha_creacion'] = str(item['fecha_creacion'])
-        else:
-            item['fecha_creacion'] = ''
-        result.append(item)
+    result = [dict(zip(keys, row)) for row in rows]
+    for r in result:
+        r['fecha_creacion'] = str(r['fecha_creacion'])
     return jsonify(result)
 
 
@@ -129,7 +115,7 @@ def crear():
     if categoria not in ('noticias', 'deportes', 'eventos'):
         return jsonify({'error': 'Categoría inválida'}), 400
     if not validar_url(url):
-        return jsonify({'error': 'URL inválida. Debe ser un ID de YouTube o enlace válido'}), 400
+        return jsonify({'error': 'URL inválida'}), 400
     
     if destacada:
         db = get_db()
@@ -140,11 +126,10 @@ def crear():
     
     db = get_db()
     cur = db.connection.cursor()
-    ahora = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     cur.execute("""
-        INSERT INTO transmisiones (titulo, descripcion, url, categoria, destacada, activo, orden, fecha_creacion, fecha_actualizacion)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-    """, (titulo, descripcion, url, categoria, destacada, activo, orden, ahora, ahora))
+        INSERT INTO transmisiones (titulo, descripcion, url, categoria, destacada, activo, orden)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
+    """, (titulo, descripcion, url, categoria, destacada, activo, orden))
     db.connection.commit()
     nuevo_id = cur.lastrowid
     cur.close()
@@ -193,10 +178,10 @@ def actualizar(item_id):
         db.connection.commit()
         cur.close()
     
-    # Agregar fecha_actualizacion manual
-    updates['fecha_actualizacion'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    
     set_clause = ', '.join(f"{k} = %s" for k in updates)
+    valores = list(updates.values()) + [item_id]
+    # Actualizar manualmente fecha_actualizacion
+    set_clause += ", fecha_actualizacion = NOW()"
     valores = list(updates.values()) + [item_id]
     
     db = get_db()

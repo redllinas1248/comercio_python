@@ -23,6 +23,13 @@ def handle_exception(e):
     app.logger.error(f"Error no controlado: {e}", exc_info=True)
     return jsonify({'error': 'Error interno del servidor'}), 500
 
+# Manejador para favicon (silencia el error 404)
+@app.errorhandler(404)
+def not_found(e):
+    if request.path == '/favicon.ico':
+        return '', 204
+    return jsonify({'error': 'No encontrado'}), 404
+
 # Verificar variables de entorno obligatorias
 _REQUIRED_SECRETS = (
     'SECRET_KEY',

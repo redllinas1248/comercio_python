@@ -216,6 +216,7 @@ def emergencias():
     return render_template('emergencias.html')
 
 
+# ===== RUTA PÚBLICA DE TRANSMISIONES (ÚNICA) =====
 @views_bp.route('/transmisiones')
 def transmisiones():
     return render_template('transmisiones.html')
@@ -246,9 +247,8 @@ def estadisticas():
         'pubs_hoy': pubs_hoy,
         'visitas_totales': visitas
     })
+
+
 @views_bp.route('/offline')
 def offline():
     return render_template('offline.html')
-@views_bp.route('/transmisiones')
-def transmisiones():
-    return render_template('transmisiones.html')
