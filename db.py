@@ -1,6 +1,5 @@
 import psycopg2
 from flask import current_app, g
-import os
 
 def get_db():
     """Obtiene una conexión a la base de datos PostgreSQL."""
@@ -9,7 +8,6 @@ def get_db():
         if not database_url:
             raise RuntimeError("DATABASE_URL no configurada")
 
-        # Asegurar que sea postgresql:// (Render usa postgres://)
         if database_url.startswith('postgres://'):
             database_url = database_url.replace('postgres://', 'postgresql://', 1)
 
@@ -23,7 +21,6 @@ def init_db(app):
         db = get_db()
         cur = db.cursor()
 
-        # Crear tablas necesarias si no existen (para que funcione en Render)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS visitas (
                 id SERIAL PRIMARY KEY,
@@ -41,10 +38,3 @@ def init_db(app):
         """)
         db.commit()
         cur.close()
-
-@app.teardown_appcontext
-def close_db(error):
-    """Cierra la conexión a la base de datos al finalizar la solicitud."""
-    db = g.pop('db', None)
-    if db is not None:
-        db.close()

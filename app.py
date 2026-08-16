@@ -1,11 +1,10 @@
 import os
 import logging
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, g
 from apscheduler.schedulers.background import BackgroundScheduler
 from security import validate_csrf
 from config import Config, init_cloudinary
-from db import init_db
-from routes.publicaciones import limpiar_publicaciones_antiguas
+from db import init_db, get_db
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -29,6 +28,14 @@ def not_found(e):
     if request.path == '/favicon.ico':
         return '', 204
     return jsonify({'error': 'No encontrado'}), 404
+
+# Cerrar conexión a la base de datos al final de la solicitud
+@app.teardown_appcontext
+def close_db(error):
+    """Cierra la conexión a la base de datos al finalizar la solicitud."""
+    db = g.pop('db', None)
+    if db is not None:
+        db.close()
 
 # Verificar variables de entorno obligatorias
 _REQUIRED_SECRETS = (
@@ -102,6 +109,7 @@ app.register_blueprint(transmisiones_bp)
 def limpieza_programada():
     with app.app_context():
         try:
+            from routes.publicaciones import limpiar_publicaciones_antiguas
             eliminadas = limpiar_publicaciones_antiguas()
             app.logger.info(f"Limpieza programada: {eliminadas} publicaciones eliminadas")
         except Exception as e:
