@@ -1,6 +1,6 @@
 import os
 import logging
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from apscheduler.schedulers.background import BackgroundScheduler
 from security import validate_csrf
 from config import Config, init_cloudinary
@@ -23,7 +23,7 @@ def handle_exception(e):
     app.logger.error(f"Error no controlado: {e}", exc_info=True)
     return jsonify({'error': 'Error interno del servidor'}), 500
 
-# Manejador para favicon (silencia el error 404)
+# Manejador para favicon
 @app.errorhandler(404)
 def not_found(e):
     if request.path == '/favicon.ico':
@@ -33,10 +33,7 @@ def not_found(e):
 # Verificar variables de entorno obligatorias
 _REQUIRED_SECRETS = (
     'SECRET_KEY',
-    'MYSQL_HOST',
-    'MYSQL_USER',
-    'MYSQL_PASSWORD',
-    'MYSQL_DB',
+    'DATABASE_URL',
     'CLOUDINARY_CLOUD_NAME',
     'CLOUDINARY_API_KEY',
     'CLOUDINARY_API_SECRET',

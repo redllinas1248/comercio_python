@@ -1,6 +1,6 @@
-from flask import Blueprint, request, jsonify, render_template, current_app
+from flask import Blueprint, request, jsonify, current_app
 from db import get_db
-from security import require_api_admin, get_current_user
+from security import require_api_admin
 import html
 from routes.push import enviar_notificacion_a_todos
 
@@ -20,31 +20,14 @@ def validar_url(url):
     return False
 
 
-def obtener_embed_url(url):
-    url = url.strip()
-    if len(url) == 11 and url.isalnum() and '-' in url:
-        return f"https://www.youtube.com/embed/{url}"
-    if 'youtube.com/watch?v=' in url:
-        video_id = url.split('v=')[1].split('&')[0]
-        return f"https://www.youtube.com/embed/{video_id}"
-    if 'youtu.be/' in url:
-        video_id = url.split('youtu.be/')[1].split('?')[0]
-        return f"https://www.youtube.com/embed/{video_id}"
-    if 'youtube.com/embed/' in url:
-        return url
-    if 'youtube.com/live_stream?channel=' in url:
-        return url
-    return url
-
-
 @transmisiones_bp.route('/publicas', methods=['GET'])
 def listar_publicas():
     db = get_db()
-    cur = db.connection.cursor()
+    cur = db.cursor()
     cur.execute("""
         SELECT id, titulo, descripcion, url, categoria, destacada, orden
         FROM transmisiones
-        WHERE activo = 1
+        WHERE activo = true
         ORDER BY destacada DESC, orden ASC, fecha_creacion DESC
     """)
     rows = cur.fetchall()
@@ -57,11 +40,11 @@ def listar_publicas():
 @transmisiones_bp.route('/destacada', methods=['GET'])
 def obtener_destacada():
     db = get_db()
-    cur = db.connection.cursor()
+    cur = db.cursor()
     cur.execute("""
         SELECT id, titulo, descripcion, url, categoria
         FROM transmisiones
-        WHERE activo = 1 AND destacada = 1
+        WHERE activo = true AND destacada = true
         ORDER BY orden ASC, fecha_creacion DESC
         LIMIT 1
     """)
@@ -79,7 +62,7 @@ def listar_admin():
     if error:
         return error
     db = get_db()
-    cur = db.connection.cursor()
+    cur = db.cursor()
     cur.execute("""
         SELECT id, titulo, descripcion, url, categoria, destacada, activo, orden, fecha_creacion
         FROM transmisiones
@@ -100,7 +83,7 @@ def crear():
     if error:
         return error
     data = request.get_json(silent=True) or {}
-    
+
     titulo = html.escape(str(data.get('titulo', '').strip()))
     descripcion = html.escape(str(data.get('descripcion', '').strip()))[:500]
     url = str(data.get('url', '').strip())
@@ -108,31 +91,29 @@ def crear():
     destacada = 1 if data.get('destacada', False) else 0
     activo = 1 if data.get('activo', True) else 0
     orden = int(data.get('orden', 0))
-    
+
     if not titulo or not url:
         return jsonify({'error': 'Título y URL son obligatorios'}), 400
     if categoria not in ('noticias', 'deportes', 'eventos'):
         return jsonify({'error': 'Categoría inválida'}), 400
     if not validar_url(url):
         return jsonify({'error': 'URL inválida'}), 400
-    
-    if destacada:
-        db = get_db()
-        cur = db.connection.cursor()
-        cur.execute("UPDATE transmisiones SET destacada = 0")
-        db.connection.commit()
-        cur.close()
-    
+
     db = get_db()
-    cur = db.connection.cursor()
+    cur = db.cursor()
+
+    if destacada:
+        cur.execute("UPDATE transmisiones SET destacada = false")
+        db.commit()
+
     cur.execute("""
         INSERT INTO transmisiones (titulo, descripcion, url, categoria, destacada, activo, orden)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id
     """, (titulo, descripcion, url, categoria, destacada, activo, orden))
-    db.connection.commit()
-    nuevo_id = cur.lastrowid
+    nuevo_id = cur.fetchone()[0]
+    db.commit()
     cur.close()
-    
+
     # Enviar notificación push si la transmisión está activa o destacada
     if activo or destacada:
         try:
@@ -143,7 +124,7 @@ def crear():
             )
         except Exception as e:
             current_app.logger.error(f"Error enviando notificación: {e}")
-    
+
     return jsonify({'mensaje': 'Transmisión creada', 'id': nuevo_id}), 201
 
 
@@ -153,17 +134,17 @@ def actualizar(item_id):
     if error:
         return error
     data = request.get_json(silent=True) or {}
-    
+
     # Obtener estado actual antes de actualizar
     db = get_db()
-    cur = db.connection.cursor()
+    cur = db.cursor()
     cur.execute("SELECT activo, destacada, titulo FROM transmisiones WHERE id = %s", (item_id,))
     current = cur.fetchone()
     cur.close()
     if not current:
         return jsonify({'error': 'No encontrada'}), 404
     current_activo, current_destacada, current_titulo = current
-    
+
     campos_permitidos = ['titulo', 'descripcion', 'url', 'categoria', 'destacada', 'activo', 'orden']
     updates = {}
     for campo in campos_permitidos:
@@ -187,31 +168,30 @@ def actualizar(item_id):
                 updates[campo] = 1 if data[campo] else 0
             elif campo == 'orden':
                 updates[campo] = int(data[campo] or 0)
-    
+
     if not updates:
         return jsonify({'error': 'Nada que actualizar'}), 400
-    
+
+    cur = db.cursor()
+
     if updates.get('destacada') == 1:
-        cur = db.connection.cursor()
-        cur.execute("UPDATE transmisiones SET destacada = 0 WHERE id != %s", (item_id,))
-        db.connection.commit()
-        cur.close()
-    
+        cur.execute("UPDATE transmisiones SET destacada = false WHERE id != %s", (item_id,))
+        db.commit()
+
     set_clause = ', '.join(f"{k} = %s" for k in updates)
     valores = list(updates.values()) + [item_id]
     # Agregar actualización manual de fecha_actualizacion
     set_clause += ", fecha_actualizacion = NOW()"
-    
-    cur = db.connection.cursor()
+
     cur.execute(f"UPDATE transmisiones SET {set_clause} WHERE id = %s", valores)
-    db.connection.commit()
+    db.commit()
     cur.close()
-    
+
     # Verificar si se activó o destacó después de la actualización
     nuevo_activo = updates.get('activo', current_activo)
     nuevo_destacada = updates.get('destacada', current_destacada)
     nuevo_titulo = updates.get('titulo', current_titulo)
-    
+
     if (nuevo_activo and not current_activo) or (nuevo_destacada and not current_destacada):
         try:
             enviar_notificacion_a_todos(
@@ -221,7 +201,7 @@ def actualizar(item_id):
             )
         except Exception as e:
             current_app.logger.error(f"Error enviando notificación: {e}")
-    
+
     return jsonify({'mensaje': 'Transmisión actualizada'})
 
 
@@ -231,9 +211,9 @@ def eliminar(item_id):
     if error:
         return error
     db = get_db()
-    cur = db.connection.cursor()
+    cur = db.cursor()
     cur.execute("DELETE FROM transmisiones WHERE id = %s", (item_id,))
-    db.connection.commit()
+    db.commit()
     cur.close()
     return jsonify({'mensaje': 'Transmisión eliminada'})
 
@@ -248,9 +228,9 @@ def reordenar():
     if not ordenes:
         return jsonify({'error': 'No se enviaron órdenes'}), 400
     db = get_db()
-    cur = db.connection.cursor()
+    cur = db.cursor()
     for item in ordenes:
         cur.execute("UPDATE transmisiones SET orden = %s WHERE id = %s", (item['orden'], item['id']))
-    db.connection.commit()
+    db.commit()
     cur.close()
     return jsonify({'mensaje': 'Orden actualizado'})

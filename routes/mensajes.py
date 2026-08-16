@@ -1,6 +1,6 @@
-from flask import Blueprint, request, jsonify, session
+from flask import Blueprint, request, jsonify
 from db import get_db
-import html as html_lib
+import html
 from security import get_current_user, valid_phone
 
 msg_bp = Blueprint('mensajes', __name__, url_prefix='/api/mensajes')
@@ -14,10 +14,10 @@ def conversaciones():
 
     telefono = user['telefono']
     db = get_db()
-    cur = db.connection.cursor()
+    cur = db.cursor()
     cur.execute("""
         SELECT DISTINCT
-            IF(emisor = %s, receptor, emisor) AS contacto,
+            CASE WHEN emisor = %s THEN receptor ELSE emisor END AS contacto,
             (SELECT mensaje FROM mensajes m2
              WHERE (m2.emisor = %s AND m2.receptor = contacto)
                 OR (m2.receptor = %s AND m2.emisor = contacto)
@@ -28,7 +28,7 @@ def conversaciones():
              ORDER BY fecha DESC LIMIT 1) AS ultima_fecha
         FROM mensajes
         WHERE emisor = %s OR receptor = %s
-    """, (telefono,)*7)
+    """, (telefono,) * 7)
     rows = cur.fetchall()
     cur.close()
 
@@ -52,7 +52,7 @@ def hilo(receptor):
 
     emisor = user['telefono']
     db = get_db()
-    cur = db.connection.cursor()
+    cur = db.cursor()
     cur.execute("""
         SELECT id, emisor, receptor, mensaje, fecha
         FROM mensajes
@@ -63,7 +63,7 @@ def hilo(receptor):
     rows = cur.fetchall()
     cur.close()
 
-    keys = ['id','emisor','receptor','mensaje','fecha']
+    keys = ['id', 'emisor', 'receptor', 'mensaje', 'fecha']
     result = [dict(zip(keys, r)) for r in rows]
     for r in result:
         r['fecha'] = str(r['fecha'])
@@ -76,10 +76,10 @@ def enviar():
     if not user:
         return jsonify({'error': 'No autenticado'}), 401
 
-    data     = request.get_json(silent=True) or {}
+    data = request.get_json(silent=True) or {}
     receptor = str(data.get('receptor') or '').strip()
-    mensaje  = html_lib.escape(str(data.get('mensaje') or '').strip())[:2000]
-    emisor   = user['telefono']
+    mensaje = html.escape(str(data.get('mensaje') or '').strip())[:2000]
+    emisor = user['telefono']
 
     if not valid_phone(receptor):
         return jsonify({'error': 'Receptor inválido'}), 400
@@ -89,13 +89,13 @@ def enviar():
         return jsonify({'error': 'Receptor y mensaje son obligatorios'}), 400
 
     db = get_db()
-    cur = db.connection.cursor()
+    cur = db.cursor()
     cur.execute(
-        "INSERT INTO mensajes (emisor, receptor, mensaje) VALUES (%s, %s, %s)",
+        "INSERT INTO mensajes (emisor, receptor, mensaje) VALUES (%s, %s, %s) RETURNING id",
         (emisor, receptor, mensaje)
     )
-    db.connection.commit()
-    nuevo_id = cur.lastrowid
+    nuevo_id = cur.fetchone()[0]
+    db.commit()
 
     cur.execute("SELECT nombre FROM usuarios WHERE telefono = %s", (emisor,))
     row = cur.fetchone()
@@ -104,7 +104,7 @@ def enviar():
     cur.execute("""
         SELECT id FROM notificaciones
         WHERE telefono_destino = %s AND mensaje LIKE %s
-          AND leida = 0 AND fecha >= NOW() - INTERVAL 5 MINUTE
+          AND leida = false AND fecha >= NOW() - INTERVAL '5 minutes'
     """, (receptor, f'%{emisor}%'))
 
     if not cur.fetchone():
@@ -112,7 +112,7 @@ def enviar():
             "INSERT INTO notificaciones (telefono_destino, mensaje) VALUES (%s, %s)",
             (receptor, f'Nuevo mensaje de {nombre_emisor}')
         )
-        db.connection.commit()
+        db.commit()
 
     cur.close()
     return jsonify({'mensaje': 'Enviado', 'id': nuevo_id}), 201
@@ -120,7 +120,6 @@ def enviar():
 
 @msg_bp.route('/conversacion/<contacto>', methods=['DELETE'])
 def eliminar_conversacion(contacto):
-    """Eliminar todos los mensajes de una conversación."""
     user = get_current_user()
     if not user:
         return jsonify({'error': 'No autenticado'}), 401
@@ -129,12 +128,12 @@ def eliminar_conversacion(contacto):
 
     telefono = user['telefono']
     db = get_db()
-    cur = db.connection.cursor()
+    cur = db.cursor()
     cur.execute("""
         DELETE FROM mensajes
         WHERE (emisor = %s AND receptor = %s)
            OR (emisor = %s AND receptor = %s)
     """, (telefono, contacto, contacto, telefono))
-    db.connection.commit()
+    db.commit()
     cur.close()
     return jsonify({'mensaje': 'Conversación eliminada'})

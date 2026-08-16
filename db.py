@@ -1,32 +1,50 @@
-from flask_mysqldb import MySQL
+import psycopg2
+from flask import current_app, g
+import os
 
-mysql = MySQL()
+def get_db():
+    """Obtiene una conexión a la base de datos PostgreSQL."""
+    if 'db' not in g:
+        database_url = current_app.config.get('DATABASE_URL')
+        if not database_url:
+            raise RuntimeError("DATABASE_URL no configurada")
+
+        # Asegurar que sea postgresql:// (Render usa postgres://)
+        if database_url.startswith('postgres://'):
+            database_url = database_url.replace('postgres://', 'postgresql://', 1)
+
+        g.db = psycopg2.connect(database_url)
+        g.db.autocommit = False
+    return g.db
 
 def init_db(app):
-    mysql.init_app(app)
+    """Inicializa la base de datos (crea tablas si no existen)."""
     with app.app_context():
-        cur = mysql.connection.cursor()
-        # Tablas de configuración y visitas. Si ya existen, no se modifican.
+        db = get_db()
+        cur = db.cursor()
+
+        # Crear tablas necesarias si no existen (para que funcione en Render)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS visitas (
-                id INT(11) NOT NULL AUTO_INCREMENT,
-                fecha DATE NOT NULL,
-                total INT(11) DEFAULT 1,
-                PRIMARY KEY (id),
-                UNIQUE KEY fecha_unica (fecha)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                id SERIAL PRIMARY KEY,
+                fecha DATE UNIQUE NOT NULL,
+                total INTEGER DEFAULT 1
+            )
         """)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS configuracion (
-                id INT(11) NOT NULL AUTO_INCREMENT,
-                clave VARCHAR(100) NOT NULL,
+                id SERIAL PRIMARY KEY,
+                clave VARCHAR(100) UNIQUE NOT NULL,
                 valor TEXT,
-                PRIMARY KEY (id),
-                UNIQUE KEY clave_unica (clave)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
         """)
-        mysql.connection.commit()
+        db.commit()
         cur.close()
 
-def get_db():
-    return mysql
+@app.teardown_appcontext
+def close_db(error):
+    """Cierra la conexión a la base de datos al finalizar la solicitud."""
+    db = g.pop('db', None)
+    if db is not None:
+        db.close()

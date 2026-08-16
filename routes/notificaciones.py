@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, session, request
+from flask import Blueprint, jsonify, request
 from db import get_db
 from security import get_current_user
 
@@ -13,7 +13,7 @@ def listar():
 
     telefono = user['telefono']
     db = get_db()
-    cur = db.connection.cursor()
+    cur = db.cursor()
     cur.execute("""
         SELECT id, mensaje, leida, fecha
         FROM notificaciones
@@ -24,7 +24,7 @@ def listar():
     rows = cur.fetchall()
     cur.close()
 
-    keys = ['id','mensaje','leida','fecha']
+    keys = ['id', 'mensaje', 'leida', 'fecha']
     result = [dict(zip(keys, r)) for r in rows]
     for r in result:
         r['fecha'] = str(r['fecha'])
@@ -39,12 +39,12 @@ def marcar_leidas():
 
     telefono = user['telefono']
     db = get_db()
-    cur = db.connection.cursor()
+    cur = db.cursor()
     cur.execute(
-        "UPDATE notificaciones SET leida = 1 WHERE telefono_destino = %s AND leida = 0",
+        "UPDATE notificaciones SET leida = true WHERE telefono_destino = %s AND leida = false",
         (telefono,)
     )
-    db.connection.commit()
+    db.commit()
     cur.close()
     return jsonify({'mensaje': 'Marcadas como leídas'})
 
@@ -57,9 +57,9 @@ def no_leidas():
 
     telefono = user['telefono']
     db = get_db()
-    cur = db.connection.cursor()
+    cur = db.cursor()
     cur.execute(
-        "SELECT COUNT(*) FROM notificaciones WHERE telefono_destino = %s AND leida = 0",
+        "SELECT COUNT(*) FROM notificaciones WHERE telefono_destino = %s AND leida = false",
         (telefono,)
     )
     total = cur.fetchone()[0]
@@ -69,37 +69,35 @@ def no_leidas():
 
 @notif_bp.route('/<int:notif_id>', methods=['DELETE'])
 def eliminar(notif_id):
-    """Eliminar una notificación."""
     user = get_current_user()
     if not user:
         return jsonify({'error': 'No autenticado'}), 401
 
     telefono = user['telefono']
     db = get_db()
-    cur = db.connection.cursor()
+    cur = db.cursor()
     cur.execute(
         "DELETE FROM notificaciones WHERE id = %s AND telefono_destino = %s",
         (notif_id, telefono)
     )
-    db.connection.commit()
+    db.commit()
     cur.close()
     return jsonify({'mensaje': 'Notificación eliminada'})
 
 
 @notif_bp.route('/borrar-todas', methods=['DELETE'])
 def borrar_todas():
-    """Borrar todas las notificaciones del usuario."""
     user = get_current_user()
     if not user:
         return jsonify({'error': 'No autenticado'}), 401
 
     telefono = user['telefono']
     db = get_db()
-    cur = db.connection.cursor()
+    cur = db.cursor()
     cur.execute(
         "DELETE FROM notificaciones WHERE telefono_destino = %s",
         (telefono,)
     )
-    db.connection.commit()
+    db.commit()
     cur.close()
     return jsonify({'mensaje': 'Todas eliminadas'})

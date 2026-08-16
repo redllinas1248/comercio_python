@@ -23,7 +23,7 @@ VAPID_CLAIMS = {
 
 def _config_value(clave, default=None):
     db = get_db()
-    cur = db.connection.cursor()
+    cur = db.cursor()
     try:
         cur.execute(
             "SELECT valor FROM configuracion WHERE clave = %s LIMIT 1",
@@ -40,7 +40,7 @@ def _config_value(clave, default=None):
 @views_bp.app_context_processor
 def inject_site_config():
     db = get_db()
-    cur = db.connection.cursor()
+    cur = db.cursor()
     try:
         cur.execute("SELECT COALESCE(SUM(total), 0) FROM visitas")
         row = cur.fetchone()
@@ -86,14 +86,14 @@ def admin_required(f):
 @views_bp.route('/')
 def index():
     db = get_db()
-    cur = db.connection.cursor()
+    cur = db.cursor()
     try:
         cur.execute("""
             INSERT INTO visitas (fecha, total)
-            VALUES (CURDATE(), 1)
-            ON DUPLICATE KEY UPDATE total = total + 1
+            VALUES (CURRENT_DATE, 1)
+            ON CONFLICT (fecha) DO UPDATE SET total = visitas.total + 1
         """)
-        db.connection.commit()
+        db.commit()
     finally:
         cur.close()
 
@@ -198,13 +198,13 @@ def subir_logo():
         logo_url = resultado['secure_url']
 
         db = get_db()
-        cur = db.connection.cursor()
+        cur = db.cursor()
         cur.execute("""
             INSERT INTO configuracion (clave, valor)
             VALUES ('logo_url', %s)
-            ON DUPLICATE KEY UPDATE valor = VALUES(valor)
+            ON CONFLICT (clave) DO UPDATE SET valor = EXCLUDED.valor
         """, (logo_url,))
-        db.connection.commit()
+        db.commit()
         cur.close()
 
         return jsonify({'ok': True, 'logo_url': logo_url})
@@ -231,12 +231,12 @@ def transmisiones():
 @views_bp.route('/api/estadisticas', methods=['GET'])
 def estadisticas():
     db = get_db()
-    cur = db.connection.cursor()
+    cur = db.cursor()
     try:
         cur.execute("SELECT COUNT(*) FROM usuarios")
         total_usuarios = cur.fetchone()[0]
 
-        cur.execute("SELECT COUNT(*) FROM publicaciones WHERE fecha >= NOW() - INTERVAL 24 HOUR")
+        cur.execute("SELECT COUNT(*) FROM publicaciones WHERE fecha >= NOW() - INTERVAL '24 hours'")
         pubs_hoy = cur.fetchone()[0]
 
         cur.execute("SELECT COALESCE(SUM(total), 0) FROM visitas")
@@ -281,13 +281,16 @@ def push_subscribe():
         return jsonify({'error': 'Datos incompletos'}), 400
 
     db = get_db()
-    cur = db.connection.cursor()
+    cur = db.cursor()
     cur.execute("""
         INSERT INTO push_subscriptions (endpoint, auth_key, p256dh_key, user_agent)
         VALUES (%s, %s, %s, %s)
-        ON DUPLICATE KEY UPDATE auth_key = VALUES(auth_key), p256dh_key = VALUES(p256dh_key), user_agent = VALUES(user_agent)
+        ON CONFLICT (endpoint) DO UPDATE SET
+            auth_key = EXCLUDED.auth_key,
+            p256dh_key = EXCLUDED.p256dh_key,
+            user_agent = EXCLUDED.user_agent
     """, (endpoint, auth_key, p256dh_key, user_agent))
-    db.connection.commit()
+    db.commit()
     cur.close()
     return jsonify({'mensaje': 'Suscripción guardada'})
 
@@ -299,9 +302,9 @@ def push_unsubscribe():
     if not endpoint:
         return jsonify({'error': 'Endpoint requerido'}), 400
     db = get_db()
-    cur = db.connection.cursor()
+    cur = db.cursor()
     cur.execute("DELETE FROM push_subscriptions WHERE endpoint = %s", (endpoint,))
-    db.connection.commit()
+    db.commit()
     cur.close()
     return jsonify({'mensaje': 'Suscripción eliminada'})
 
@@ -319,7 +322,7 @@ def push_send():
         return jsonify({'error': 'Claves VAPID no configuradas'}), 500
 
     db = get_db()
-    cur = db.connection.cursor()
+    cur = db.cursor()
     cur.execute("SELECT endpoint, auth_key, p256dh_key FROM push_subscriptions")
     subscriptions = cur.fetchall()
     cur.close()
@@ -349,9 +352,9 @@ def push_send():
             success_count += 1
         except WebPushException as e:
             if e.response and e.response.status_code in [410, 404]:
-                cur = db.connection.cursor()
+                cur = db.cursor()
                 cur.execute("DELETE FROM push_subscriptions WHERE endpoint = %s", (endpoint,))
-                db.connection.commit()
+                db.commit()
                 cur.close()
             else:
                 current_app.logger.error(f"Error enviando notificación: {e}")

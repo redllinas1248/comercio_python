@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, session
+from flask import Blueprint, request, jsonify
 from db import get_db
 from security import require_api_admin
 
@@ -7,27 +7,26 @@ dir_bp = Blueprint('directorio', __name__, url_prefix='/api/directorio')
 
 @dir_bp.route('', methods=['GET'])
 def listar():
-    """Lista todos los registros activos agrupados por categoría, filtrando por tipo si se indica."""
     db = get_db()
-    cur = db.connection.cursor()
-    
-    tipo = request.args.get('tipo')  # 'servicios', 'emergencias' o None
-    
+    cur = db.cursor()
+
+    tipo = request.args.get('tipo')
+
     if tipo:
         cur.execute("""
             SELECT id, categoria, nombre, telefono, horario, direccion, icono, tipo
             FROM directorio
-            WHERE activo = 1 AND tipo = %s
+            WHERE activo = true AND tipo = %s
             ORDER BY categoria, orden, nombre
         """, (tipo,))
     else:
         cur.execute("""
             SELECT id, categoria, nombre, telefono, horario, direccion, icono, tipo
             FROM directorio
-            WHERE activo = 1
+            WHERE activo = true
             ORDER BY categoria, orden, nombre
         """)
-    
+
     rows = cur.fetchall()
     cur.close()
 
@@ -45,33 +44,29 @@ def listar():
 
 @dir_bp.route('', methods=['POST'])
 def crear():
-    """Admin: crear entrada en el directorio."""
     _, error = require_api_admin()
     if error:
         return error
     data = request.get_json(silent=True) or {}
-    # Incluimos 'tipo' en los campos
     campos = ['categoria', 'nombre', 'telefono', 'horario', 'direccion', 'icono', 'orden', 'tipo']
     valores = [data.get(c, '') or (0 if c == 'orden' else '') for c in campos]
-    # Si no viene tipo, ponemos 'general'
     if not valores[7]:
         valores[7] = 'general'
 
     db = get_db()
-    cur = db.connection.cursor()
+    cur = db.cursor()
     cur.execute("""
         INSERT INTO directorio (categoria, nombre, telefono, horario, direccion, icono, orden, tipo)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
     """, valores)
-    db.connection.commit()
-    nuevo_id = cur.lastrowid
+    nuevo_id = cur.fetchone()[0]
+    db.commit()
     cur.close()
     return jsonify({'mensaje': 'Creado', 'id': nuevo_id}), 201
 
 
 @dir_bp.route('/<int:item_id>', methods=['PUT'])
 def actualizar(item_id):
-    """Admin: editar entrada."""
     _, error = require_api_admin()
     if error:
         return error
@@ -85,36 +80,34 @@ def actualizar(item_id):
     valores = list(updates.values()) + [item_id]
 
     db = get_db()
-    cur = db.connection.cursor()
+    cur = db.cursor()
     cur.execute(f"UPDATE directorio SET {set_clause} WHERE id = %s", valores)
-    db.connection.commit()
+    db.commit()
     cur.close()
     return jsonify({'mensaje': 'Actualizado'})
 
 
 @dir_bp.route('/<int:item_id>', methods=['DELETE'])
 def eliminar(item_id):
-    """Admin: eliminar entrada."""
     _, error = require_api_admin()
     if error:
         return error
     db = get_db()
-    cur = db.connection.cursor()
+    cur = db.cursor()
     cur.execute("DELETE FROM directorio WHERE id = %s", (item_id,))
-    db.connection.commit()
+    db.commit()
     cur.close()
     return jsonify({'mensaje': 'Eliminado'})
 
 
 @dir_bp.route('/<int:item_id>/toggle', methods=['POST'])
 def toggle(item_id):
-    """Admin: activar/desactivar entrada."""
     _, error = require_api_admin()
     if error:
         return error
     db = get_db()
-    cur = db.connection.cursor()
+    cur = db.cursor()
     cur.execute("UPDATE directorio SET activo = NOT activo WHERE id = %s", (item_id,))
-    db.connection.commit()
+    db.commit()
     cur.close()
     return jsonify({'mensaje': 'Actualizado'})

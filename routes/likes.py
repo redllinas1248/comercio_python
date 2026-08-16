@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, session
+from flask import Blueprint, request, jsonify
 from db import get_db
 from security import get_current_user
 
@@ -10,7 +10,7 @@ REACCIONES_VALIDAS = {'like', 'love', 'angry', 'wow', 'sad'}
 @likes_bp.route('/<int:pub_id>', methods=['GET'])
 def listar(pub_id):
     db = get_db()
-    cur = db.connection.cursor()
+    cur = db.cursor()
     cur.execute("""
         SELECT reaccion, COUNT(*) as total
         FROM likes WHERE publicacion_id = %s
@@ -23,26 +23,24 @@ def listar(pub_id):
 
 @likes_bp.route('', methods=['POST'])
 def reaccionar():
-    """Dar o quitar reacción (toggle)."""
     user = get_current_user()
     if not user:
         return jsonify({'error': 'No autenticado'}), 401
 
-    data      = request.get_json(silent=True) or {}
+    data = request.get_json(silent=True) or {}
     try:
         pub_id = int(data.get('publicacion_id'))
     except (TypeError, ValueError):
         return jsonify({'error': 'Publicación inválida'}), 400
-    reaccion  = data.get('reaccion', 'like')
-    telefono  = user['telefono']
+    reaccion = data.get('reaccion', 'like')
+    telefono = user['telefono']
 
     if reaccion not in REACCIONES_VALIDAS:
         return jsonify({'error': 'Reacción no válida'}), 400
 
     db = get_db()
-    cur = db.connection.cursor()
+    cur = db.cursor()
 
-    # Ver si ya reaccionó
     cur.execute(
         "SELECT id, reaccion FROM likes WHERE telefono = %s AND publicacion_id = %s",
         (telefono, pub_id)
@@ -51,26 +49,22 @@ def reaccionar():
 
     if existente:
         if existente[1] == reaccion:
-            # Misma reacción → quitar (toggle off)
             cur.execute("DELETE FROM likes WHERE id = %s", (existente[0],))
-            db.connection.commit()
+            db.commit()
             cur.close()
             return jsonify({'accion': 'quitado', 'reaccion': reaccion})
         else:
-            # Cambiar reacción
             cur.execute("UPDATE likes SET reaccion = %s WHERE id = %s", (reaccion, existente[0]))
-            db.connection.commit()
+            db.commit()
             cur.close()
             return jsonify({'accion': 'cambiado', 'reaccion': reaccion})
     else:
-        # Nueva reacción
         cur.execute(
             "INSERT INTO likes (telefono, publicacion_id, reaccion) VALUES (%s, %s, %s)",
             (telefono, pub_id, reaccion)
         )
-        db.connection.commit()
+        db.commit()
 
-        # Notificar al dueño
         cur.execute("SELECT telefono FROM publicaciones WHERE id = %s", (pub_id,))
         row = cur.fetchone()
         if row and row[0] != telefono:
@@ -79,7 +73,7 @@ def reaccionar():
                 "INSERT INTO notificaciones (telefono_destino, mensaje) VALUES (%s, %s)",
                 (row[0], f"{emojis.get(reaccion, '👍')} Le dieron {reaccion} a tu publicación")
             )
-            db.connection.commit()
+            db.commit()
 
         cur.close()
         return jsonify({'accion': 'agregado', 'reaccion': reaccion}), 201

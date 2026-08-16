@@ -1,22 +1,20 @@
 import secrets
 import re
 from functools import wraps
-from flask import session, jsonify, redirect, url_for, request
+from flask import session, jsonify, request
 from db import get_db
 
-
 def get_current_user():
-    """Obtiene el usuario real desde BD usando el ID guardado en sesión."""
     user_id = session.get('usuario_id')
     if not user_id:
         return None
 
     db = get_db()
-    cur = db.connection.cursor()
+    cur = db.cursor()
     try:
         cur.execute(
             """SELECT id, telefono, rol, baneado
-               FROM usuarios WHERE id = %s LIMIT 1""",
+               FROM usuarios WHERE id = %s""",
             (user_id,)
         )
         row = cur.fetchone()
@@ -27,8 +25,12 @@ def get_current_user():
         session.clear()
         return None
 
-    user = {'id': row[0], 'telefono': row[1], 'rol': row[2] or 'usuario',
-            'baneado': bool(row[3])}
+    user = {
+        'id': row[0],
+        'telefono': row[1],
+        'rol': row[2] or 'usuario',
+        'baneado': bool(row[3])
+    }
 
     if user['baneado']:
         session.clear()

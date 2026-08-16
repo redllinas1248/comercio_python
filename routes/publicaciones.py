@@ -1,14 +1,14 @@
-import os, time
-from flask import Blueprint, request, jsonify, session, current_app
+import os
+from flask import Blueprint, request, jsonify, current_app
 from werkzeug.utils import secure_filename
 from db import get_db
 from security import require_api_admin, get_current_user
 import cloudinary.uploader
 import cloudinary.api
+import html
 
 pub_bp = Blueprint('publicaciones', __name__, url_prefix='/api/publicaciones')
 
-# ===== CONFIGURACIÓN =====
 DIAS_PARA_ELIMINAR = 30  # Publicaciones más antiguas que esto se eliminarán
 
 
@@ -23,7 +23,6 @@ def subir_cloudinary(archivo, carpeta='posts'):
 
 
 def eliminar_cloudinary_archivo(public_id, resource_type="image"):
-    """Elimina un archivo de Cloudinary por su public_id."""
     try:
         cloudinary.uploader.destroy(public_id, resource_type=resource_type)
     except Exception as e:
@@ -31,25 +30,19 @@ def eliminar_cloudinary_archivo(public_id, resource_type="image"):
 
 
 def extraer_public_id(ruta):
-    """Extrae el public_id de una URL de Cloudinary."""
-    # Ejemplo: https://res.cloudinary.com/.../comercio/imagenes/abcd.jpg
     if '/comercio/' in ruta:
         partes = ruta.split('/comercio/')
         if len(partes) > 1:
-            public_id = partes[1].split('.')[0]  # Quitar extensión
+            public_id = partes[1].split('.')[0]
             return f"comercio/{public_id}"
     return None
 
 
 def eliminar_archivos_cloudinary(imagenes, videos):
-    """Elimina todas las imágenes y videos de Cloudinary."""
-    # Eliminar imágenes
     for ruta in imagenes:
         public_id = extraer_public_id(ruta)
         if public_id:
             eliminar_cloudinary_archivo(public_id, "image")
-    
-    # Eliminar videos
     for ruta in videos:
         public_id = extraer_public_id(ruta)
         if public_id:
@@ -57,59 +50,50 @@ def eliminar_archivos_cloudinary(imagenes, videos):
 
 
 def limpiar_publicaciones_antiguas():
-    """
-    Elimina publicaciones con más de DIAS_PARA_ELIMINAR días de antigüedad.
-    Retorna el número de publicaciones eliminadas.
-    """
     db = get_db()
-    cur = db.connection.cursor()
-    
-    # Obtener publicaciones antiguas
+    cur = db.cursor()
+
+    # Obtener publicaciones antiguas (PostgreSQL syntax)
     cur.execute("""
-        SELECT id, telefono 
-        FROM publicaciones 
-        WHERE fecha < DATE_SUB(NOW(), INTERVAL %s DAY)
+        SELECT id, telefono
+        FROM publicaciones
+        WHERE fecha < NOW() - INTERVAL %s DAY
     """, (DIAS_PARA_ELIMINAR,))
-    
+
     pubs = cur.fetchall()
     eliminadas = 0
-    
+
     for pub_id, telefono in pubs:
-        # Obtener imágenes y videos asociados
         cur.execute("SELECT ruta FROM publicaciones_imagenes WHERE publicacion_id = %s", (pub_id,))
         imagenes = [r[0] for r in cur.fetchall()]
-        
+
         cur.execute("SELECT ruta FROM publicaciones_videos WHERE publicacion_id = %s", (pub_id,))
         videos = [r[0] for r in cur.fetchall()]
-        
-        # Eliminar archivos de Cloudinary
+
         try:
             eliminar_archivos_cloudinary(imagenes, videos)
         except Exception as e:
-            current_app.logger.error(f"Error eliminando archivos de Cloudinary para pub {pub_id}: {e}")
-        
-        # Eliminar registros de la BD
+            current_app.logger.error(f"Error eliminando archivos Cloudinary para pub {pub_id}: {e}")
+
         cur.execute("DELETE FROM publicaciones_imagenes WHERE publicacion_id = %s", (pub_id,))
         cur.execute("DELETE FROM publicaciones_videos WHERE publicacion_id = %s", (pub_id,))
         cur.execute("DELETE FROM likes WHERE publicacion_id = %s", (pub_id,))
         cur.execute("DELETE FROM comentarios WHERE publicacion_id = %s", (pub_id,))
         cur.execute("DELETE FROM publicaciones WHERE id = %s", (pub_id,))
-        
+
         eliminadas += 1
-    
-    db.connection.commit()
+
+    db.commit()
     cur.close()
     return eliminadas
 
 
-# ===== ENDPOINT PARA LIMPIEZA MANUAL (solo admin) =====
 @pub_bp.route('/limpiar', methods=['POST'])
 def limpiar_manual():
-    """Endpoint para ejecutar la limpieza manualmente (solo admin)."""
     _, error = require_api_admin()
     if error:
         return error
-    
+
     try:
         eliminadas = limpiar_publicaciones_antiguas()
         return jsonify({
@@ -121,10 +105,9 @@ def limpiar_manual():
         return jsonify({'error': 'Error al ejecutar la limpieza'}), 500
 
 
-# ===== RUTAS EXISTENTES =====
 @pub_bp.route('', methods=['GET'])
 def listar():
-    categoria_id    = request.args.get('categoria_id')
+    categoria_id = request.args.get('categoria_id')
     telefono_filtro = request.args.get('telefono')
     incluir_destacadas = request.args.get('incluir_destacadas', 'false').lower() == 'true'
     try:
@@ -133,11 +116,11 @@ def listar():
     except (TypeError, ValueError):
         return jsonify({'error': 'Paginación inválida'}), 400
 
-    db  = get_db()
-    cur = db.connection.cursor()
+    db = get_db()
+    cur = db.cursor()
 
-    condiciones = ["p.destacada = 0"]
-    params      = []
+    condiciones = ["p.destacada = false"]  # PostgreSQL usa false
+    params = []
     if categoria_id:
         condiciones.append("p.categoria_id = %s")
         params.append(categoria_id)
@@ -146,11 +129,11 @@ def listar():
         params.append(telefono_filtro)
 
     if incluir_destacadas:
-        condiciones = [c for c in condiciones if c != "p.destacada = 0"]
+        condiciones = [c for c in condiciones if c != "p.destacada = false"]
 
     where = "WHERE " + " AND ".join(condiciones) if condiciones else ""
 
-    cur.execute(f"""
+    query = f"""
         SELECT p.id, p.telefono, p.contenido, p.fecha, p.categoria_id,
                c.nombre AS categoria,
                u.nombre AS autor, u.foto AS autor_foto, u.telefono AS tel_autor, u.localidad AS comunidad,
@@ -163,11 +146,13 @@ def listar():
         {where}
         ORDER BY p.fecha DESC
         LIMIT %s OFFSET %s
-    """, params + [limite, offset])
-
+    """
+    cur.execute(query, params + [limite, offset])
     rows = cur.fetchall()
-    keys = ['id','telefono','contenido','fecha','categoria_id','categoria',
-            'autor','autor_foto','tel_autor','comunidad','precio','destacada','total_likes','total_comentarios']
+    keys = ['id', 'telefono', 'contenido', 'fecha', 'categoria_id', 'categoria',
+            'autor', 'autor_foto', 'tel_autor', 'comunidad', 'precio', 'destacada',
+            'total_likes', 'total_comentarios']
+
     publicaciones = []
     for row in rows:
         pub = dict(zip(keys, row))
@@ -185,8 +170,8 @@ def listar():
 
 @pub_bp.route('/<int:pub_id>', methods=['GET'])
 def detalle(pub_id):
-    db  = get_db()
-    cur = db.connection.cursor()
+    db = get_db()
+    cur = db.cursor()
     cur.execute("""
         SELECT p.id, p.telefono, p.contenido, p.fecha, p.categoria_id,
                c.nombre AS categoria, u.nombre AS autor, u.foto AS autor_foto,
@@ -201,9 +186,10 @@ def detalle(pub_id):
         cur.close()
         return jsonify({'error': 'No encontrada'}), 404
 
-    keys = ['id','telefono','contenido','fecha','categoria_id','categoria','autor','autor_foto','tel_autor','precio','comunidad']
-    pub  = dict(zip(keys, row))
-    pub['fecha']  = str(pub['fecha'])
+    keys = ['id', 'telefono', 'contenido', 'fecha', 'categoria_id', 'categoria',
+            'autor', 'autor_foto', 'tel_autor', 'precio', 'comunidad']
+    pub = dict(zip(keys, row))
+    pub['fecha'] = str(pub['fecha'])
     pub['precio'] = str(pub['precio']) if pub['precio'] else None
 
     cur.execute("SELECT ruta FROM publicaciones_imagenes WHERE publicacion_id = %s", (pub_id,))
@@ -220,11 +206,10 @@ def crear():
     if not user:
         return jsonify({'error': 'No autenticado'}), 401
 
-    import html
-    contenido    = html.escape(request.form.get('contenido', '').strip())[:5000]
+    contenido = html.escape(request.form.get('contenido', '').strip())[:5000]
     categoria_id = request.form.get('categoria_id')
-    precio       = request.form.get('precio', '').strip() or None
-    telefono     = user['telefono']
+    precio = request.form.get('precio', '').strip() or None
+    telefono = user['telefono']
 
     if not contenido:
         return jsonify({'error': 'El contenido es obligatorio'}), 400
@@ -244,11 +229,11 @@ def crear():
         except (InvalidOperation, ValueError):
             return jsonify({'error': 'Precio inválido'}), 400
 
-    db  = get_db()
-    cur = db.connection.cursor()
+    db = get_db()
+    cur = db.cursor()
 
     cur.execute(
-        "SELECT COUNT(*) FROM publicaciones WHERE telefono = %s AND fecha >= NOW() - INTERVAL 24 HOUR",
+        "SELECT COUNT(*) FROM publicaciones WHERE telefono = %s AND fecha >= NOW() - INTERVAL '24 hours'",
         (telefono,)
     )
     count_hoy = cur.fetchone()[0]
@@ -257,11 +242,11 @@ def crear():
         return jsonify({'error': '⏳ Llegaste al límite de 2 publicaciones por día. Intenta mañana.'}), 429
 
     cur.execute(
-        "INSERT INTO publicaciones (telefono, contenido, categoria_id, precio) VALUES (%s, %s, %s, %s)",
+        "INSERT INTO publicaciones (telefono, contenido, categoria_id, precio) VALUES (%s, %s, %s, %s) RETURNING id",
         (telefono, contenido, categoria_id, precio)
     )
-    db.connection.commit()
-    pub_id = cur.lastrowid
+    pub_id = cur.fetchone()[0]
+    db.commit()
 
     # Sistema de puntos
     cur.execute("SELECT COUNT(*) FROM publicaciones WHERE telefono = %s", (telefono,))
@@ -272,45 +257,43 @@ def crear():
             "INSERT INTO puntos_historial (telefono, motivo, cantidad) VALUES (%s, %s, 1)",
             (telefono, "2 publicaciones completadas (" + str(total_pubs) + " total)")
         )
-        db.connection.commit()
+        db.commit()
 
-    # Subir imágenes a Cloudinary (límite 20 MB)
-    MAX_VIDEO_SIZE = 20 * 1024 * 1024  # 20 MB
+    # Subir imágenes
+    MAX_VIDEO_SIZE = 20 * 1024 * 1024
     for img in request.files.getlist('imagenes'):
         if img and img.filename:
             ext = img.filename.rsplit('.', 1)[-1].lower()
-            if ext in {'png','jpg','jpeg','gif','webp'}:
+            if ext in {'png', 'jpg', 'jpeg', 'gif', 'webp'}:
                 try:
                     url = subir_cloudinary(img, 'imagenes')
                     cur.execute(
                         "INSERT INTO publicaciones_imagenes (publicacion_id, ruta) VALUES (%s, %s)",
                         (pub_id, url)
                     )
+                    db.commit()
                 except Exception as e:
                     current_app.logger.error(f"Error subiendo imagen: {e}")
 
-    # Subir video a Cloudinary con límite de 20 MB
     for vid in request.files.getlist('videos'):
         if vid and vid.filename:
-            # Validar tamaño
             vid.seek(0, os.SEEK_END)
             size = vid.tell()
             vid.seek(0)
             if size > MAX_VIDEO_SIZE:
-                continue  # Ignorar videos que excedan el límite
-            
+                continue
             ext = vid.filename.rsplit('.', 1)[-1].lower()
-            if ext in {'mp4','mov','webm','avi'}:
+            if ext in {'mp4', 'mov', 'webm', 'avi'}:
                 try:
                     url = subir_cloudinary(vid, 'videos')
                     cur.execute(
                         "INSERT INTO publicaciones_videos (publicacion_id, ruta) VALUES (%s, %s)",
                         (pub_id, url)
                     )
+                    db.commit()
                 except Exception as e:
                     current_app.logger.error(f"Error subiendo video: {e}")
 
-    db.connection.commit()
     cur.close()
     return jsonify({'mensaje': 'Publicación creada', 'id': pub_id}), 201
 
@@ -321,8 +304,8 @@ def eliminar(pub_id):
     if not user:
         return jsonify({'error': 'No autenticado'}), 401
 
-    db  = get_db()
-    cur = db.connection.cursor()
+    db = get_db()
+    cur = db.cursor()
     cur.execute("SELECT telefono FROM publicaciones WHERE id = %s", (pub_id,))
     row = cur.fetchone()
 
@@ -333,31 +316,28 @@ def eliminar(pub_id):
         cur.close()
         return jsonify({'error': 'Sin permiso'}), 403
 
-    # Obtener rutas de imágenes y videos
     cur.execute("SELECT ruta FROM publicaciones_imagenes WHERE publicacion_id = %s", (pub_id,))
     imagenes = [r[0] for r in cur.fetchall()]
     cur.execute("SELECT ruta FROM publicaciones_videos WHERE publicacion_id = %s", (pub_id,))
     videos = [r[0] for r in cur.fetchall()]
 
-    # Eliminar archivos de Cloudinary
     try:
         eliminar_archivos_cloudinary(imagenes, videos)
     except Exception as e:
         current_app.logger.error(f"Error eliminando archivos de Cloudinary: {e}")
 
-    # Eliminar registros de la BD
     cur.execute("DELETE FROM publicaciones_imagenes WHERE publicacion_id = %s", (pub_id,))
     cur.execute("DELETE FROM publicaciones_videos WHERE publicacion_id = %s", (pub_id,))
     cur.execute("DELETE FROM publicaciones WHERE id = %s", (pub_id,))
-    db.connection.commit()
+    db.commit()
     cur.close()
     return jsonify({'mensaje': 'Publicación eliminada'})
 
 
 @pub_bp.route('/categorias', methods=['GET'])
 def categorias():
-    db  = get_db()
-    cur = db.connection.cursor()
+    db = get_db()
+    cur = db.cursor()
     cur.execute("SELECT id, nombre FROM categorias")
     rows = cur.fetchall()
     cur.close()
@@ -370,18 +350,17 @@ def destacar(pub_id):
     if error:
         return error
 
-    data   = request.get_json(silent=True) or {}
+    data = request.get_json(silent=True) or {}
     activar = data.get('destacada', True)
 
-    db  = get_db()
-    cur = db.connection.cursor()
+    db = get_db()
+    cur = db.cursor()
     if activar:
-        cur.execute("UPDATE publicaciones SET destacada = 0")
-        cur.execute("UPDATE publicaciones SET destacada = 1 WHERE id = %s", (pub_id,))
+        cur.execute("UPDATE publicaciones SET destacada = false")
+        cur.execute("UPDATE publicaciones SET destacada = true WHERE id = %s", (pub_id,))
     else:
-        cur.execute("UPDATE publicaciones SET destacada = 0 WHERE id = %s", (pub_id,))
-
-    db.connection.commit()
+        cur.execute("UPDATE publicaciones SET destacada = false WHERE id = %s", (pub_id,))
+    db.commit()
     cur.close()
     return jsonify({'mensaje': 'Actualizado'})
 
@@ -398,14 +377,14 @@ def buscar():
 
     like = f"%{q}%"
     db = get_db()
-    cur = db.connection.cursor()
+    cur = db.cursor()
 
     # BUSCAR USUARIOS
     cur.execute("""
-        SELECT telefono, nombre, foto, localidad, 
+        SELECT telefono, nombre, foto, localidad,
                (SELECT COUNT(*) FROM publicaciones WHERE telefono = u.telefono) AS total_pubs
         FROM usuarios u
-        WHERE nombre LIKE %s OR telefono LIKE %s
+        WHERE nombre ILIKE %s OR telefono LIKE %s
         LIMIT 5
     """, (like, like))
     usuarios = []
@@ -427,11 +406,12 @@ def buscar():
                (SELECT COUNT(*) FROM comentarios co WHERE co.publicacion_id = p.id) AS total_comentarios
         FROM publicaciones p
         LEFT JOIN usuarios u ON u.telefono = p.telefono
-        WHERE p.contenido LIKE %s OR u.nombre LIKE %s OR u.telefono LIKE %s
+        WHERE p.contenido ILIKE %s OR u.nombre ILIKE %s OR u.telefono LIKE %s
         ORDER BY p.fecha DESC LIMIT %s
     """, (like, like, like, limite))
     rows = cur.fetchall()
-    keys = ['id','telefono','contenido','fecha','autor','autor_foto','tel_autor','precio','comunidad','destacada','total_likes','total_comentarios']
+    keys = ['id', 'telefono', 'contenido', 'fecha', 'autor', 'autor_foto',
+            'tel_autor', 'precio', 'comunidad', 'destacada', 'total_likes', 'total_comentarios']
     publicaciones = []
     for row in rows:
         pub = dict(zip(keys, row))
@@ -452,8 +432,8 @@ def admin_lista():
     _, error = require_api_admin()
     if error:
         return error
-    db  = get_db()
-    cur = db.connection.cursor()
+    db = get_db()
+    cur = db.cursor()
     cur.execute("""
         SELECT p.id, p.telefono, p.contenido, p.fecha,
                u.nombre AS autor,
@@ -464,7 +444,7 @@ def admin_lista():
         ORDER BY p.fecha DESC LIMIT 100
     """)
     rows = cur.fetchall()
-    keys = ['id','telefono','contenido','fecha','autor','likes','comentarios']
+    keys = ['id', 'telefono', 'contenido', 'fecha', 'autor', 'likes', 'comentarios']
     result = [dict(zip(keys, r)) for r in rows]
     for r in result:
         r['fecha'] = str(r['fecha'])
@@ -475,7 +455,7 @@ def admin_lista():
 @pub_bp.route('/destacadas', methods=['GET'])
 def destacadas():
     db = get_db()
-    cur = db.connection.cursor()
+    cur = db.cursor()
     cur.execute("""
         SELECT p.id, p.telefono, p.contenido, p.fecha, p.precio,
                u.nombre AS autor, u.foto AS autor_foto, u.telefono AS tel_autor, u.localidad AS comunidad,
@@ -483,12 +463,13 @@ def destacadas():
                (SELECT COUNT(*) FROM comentarios co WHERE co.publicacion_id = p.id) AS total_comentarios
         FROM publicaciones p
         LEFT JOIN usuarios u ON u.telefono = p.telefono
-        WHERE p.destacada = 1
+        WHERE p.destacada = true
         ORDER BY p.fecha DESC
         LIMIT 10
     """)
     rows = cur.fetchall()
-    keys = ['id','telefono','contenido','fecha','precio','autor','autor_foto','tel_autor','comunidad','total_likes','total_comentarios']
+    keys = ['id', 'telefono', 'contenido', 'fecha', 'precio', 'autor', 'autor_foto',
+            'tel_autor', 'comunidad', 'total_likes', 'total_comentarios']
     publicaciones = []
     for row in rows:
         pub = dict(zip(keys, row))
