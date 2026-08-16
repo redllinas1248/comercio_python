@@ -6,3 +6,4 @@ Werkzeug==3.0.3
 cloudinary==1.40.0
 APScheduler==3.10.4
 pywebpush==1.14.1
+Pillow==10.4.0
