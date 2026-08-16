@@ -15,20 +15,27 @@ def conversaciones():
     telefono = user['telefono']
     db = get_db()
     cur = db.cursor()
+
+    # Consulta adaptada para PostgreSQL (sin alias en subconsultas)
     cur.execute("""
         SELECT DISTINCT
             CASE WHEN emisor = %s THEN receptor ELSE emisor END AS contacto,
             (SELECT mensaje FROM mensajes m2
-             WHERE (m2.emisor = %s AND m2.receptor = contacto)
-                OR (m2.receptor = %s AND m2.emisor = contacto)
+             WHERE (m2.emisor = %s AND m2.receptor = contacto_aux)
+                OR (m2.receptor = %s AND m2.emisor = contacto_aux)
              ORDER BY fecha DESC LIMIT 1) AS ultimo_mensaje,
             (SELECT fecha FROM mensajes m3
-             WHERE (m3.emisor = %s AND m3.receptor = contacto)
-                OR (m3.receptor = %s AND m3.emisor = contacto)
+             WHERE (m3.emisor = %s AND m3.receptor = contacto_aux)
+                OR (m3.receptor = %s AND m3.emisor = contacto_aux)
              ORDER BY fecha DESC LIMIT 1) AS ultima_fecha
-        FROM mensajes
-        WHERE emisor = %s OR receptor = %s
-    """, (telefono,) * 7)
+        FROM (
+            SELECT
+                CASE WHEN emisor = %s THEN receptor ELSE emisor END AS contacto_aux
+            FROM mensajes
+            WHERE emisor = %s OR receptor = %s
+        ) AS subconsulta
+    """, (telefono,) * 9)
+
     rows = cur.fetchall()
     cur.close()
 
