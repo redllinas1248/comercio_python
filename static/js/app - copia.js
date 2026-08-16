@@ -1,8 +1,7 @@
 /* ===== Utilidades ===== */
 const $ = id => document.getElementById(id);
 
-let SESION_ACTIVA = false;
-let _miTel = null;
+let SESION_ACTIVA = false; // Se actualiza al cargar
 
 function toast(msg, ms = 2800) {
   const el = $('toast');
@@ -13,22 +12,8 @@ function toast(msg, ms = 2800) {
   toast._t = setTimeout(() => el.classList.add('hidden'), ms);
 }
 
-let CSRF_TOKEN = null;
-
-async function getCsrfToken() {
-  if (CSRF_TOKEN) return CSRF_TOKEN;
-  const res = await fetch('/api/auth/csrf', { credentials: 'include' });
-  const data = await res.json();
-  if (!res.ok || !data.token) throw new Error('No se pudo obtener el token de seguridad');
-  CSRF_TOKEN = data.token;
-  return CSRF_TOKEN;
-}
-
 async function api(url, method = 'GET', body = null) {
   const opts = { method, headers: { 'Content-Type': 'application/json' }, credentials: 'include' };
-  if (!['GET', 'HEAD', 'OPTIONS'].includes(method.toUpperCase())) {
-    opts.headers['X-CSRF-Token'] = await getCsrfToken();
-  }
   if (body) opts.body = JSON.stringify(body);
   const res = await fetch(url, opts);
   const data = await res.json();
@@ -36,54 +21,14 @@ async function api(url, method = 'GET', body = null) {
   return data;
 }
 
-function imgUrl(ruta) {
-  // Si es URL completa (Cloudinary) la usa directo, si no agrega /static/
-  if (!ruta) return '';
-  return ruta.startsWith('http') ? ruta : '/static/' + ruta;
-}
-
 function escapeHtml(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;')
-    .replace(/\//g, '&#x2F;')
-    .replace(/`/g, '&#x60;')
-    .replace(/=/g, '&#x3D;');
-}
-
-function sanitizarId(val) {
-  // Solo permite números enteros para IDs
-  return parseInt(val) || 0;
-}
-
-function sanitizarTel(tel) {
-  // Solo permite números, +, espacios y guiones
-  return String(tel || '').replace(/[^0-9+\-\s]/g, '');
-}
-
-function encodeJsValue(value) {
-  return encodeURIComponent(String(value ?? ''));
-}
-
-function decodeJsValue(value) {
-  try { return decodeURIComponent(String(value || '')); }
-  catch (_) { return ''; }
-}
-
-function contactarWAEncoded(encodedTel, encodedText, pid) {
-  contactarWA(decodeJsValue(encodedTel), pid, decodeJsValue(encodedText));
+  const d = document.createElement('div');
+  d.appendChild(document.createTextNode(str || ''));
+  return d.innerHTML;
 }
 
 function timeAgo(fechaStr) {
-  if (!fechaStr) return '';
-  // MySQL devuelve fechas como "2026-08-06 20:44:19" — reemplazar espacio por T
-  const fecha = new Date(String(fechaStr).replace(' ', 'T') + (String(fechaStr).includes('T') ? '' : 'Z'));
-  const diff = Date.now() - fecha.getTime();
-  if (isNaN(diff)) return fechaStr;
+  const diff = Date.now() - new Date(fechaStr).getTime();
   const m = Math.floor(diff / 60000);
   if (m < 1)  return 'ahora';
   if (m < 60) return `hace ${m}m`;
@@ -91,7 +36,7 @@ function timeAgo(fechaStr) {
   if (h < 24) return `hace ${h}h`;
   const d = Math.floor(h / 24);
   if (d < 7)  return `hace ${d}d`;
-  return fecha.toLocaleDateString('es-MX', { day:'2-digit', month:'short' });
+  return new Date(fechaStr).toLocaleDateString('es-MX', { day:'2-digit', month:'short' });
 }
 
 /* ===== Modal login requerido ===== */
@@ -108,15 +53,13 @@ function cerrarModalLogin(e) {
 /* ===== Verificar sesión ===== */
 async function verificarSesion() {
   try {
-    const _yo = await api('/api/auth/yo');
+    await api('/api/auth/yo');
     SESION_ACTIVA = true;
-    _miTel = _yo.telefono;
     // Mostrar fab de publicar, ocultar fab de login
     $('fab-pub')  && ($('fab-pub').style.display   = 'flex');
     $('fab-login') && ($('fab-login').style.display = 'none');
     $('visitor-banner') && ($('visitor-banner').style.display = 'none');
-    document.querySelectorAll('.nav-auth').forEach(el => el.style.display = 'flex');
-    document.querySelectorAll('.nav-guest').forEach(el => el.style.display = 'none');
+    // Mostrar links de perfil/mensajes/notifs en navbar
     actualizarBadge();
     setInterval(actualizarBadge, 30000);
   } catch (_) {
@@ -162,25 +105,23 @@ function renderPub(p) {
   let imgsHtml = '';
   if (vids.length) {
     imgsHtml = `<div class="card-video-wrap">
-      <video src="${imgUrl(vids[0])}" controls playsinline preload="metadata" class="card-video"></video>
+      <video src="/static/${vids[0]}" controls playsinline preload="metadata" class="card-video"></video>
     </div>`;
   } else if (imgs.length) {
     const cls = `n${Math.min(imgs.length, 3)}`;
     imgsHtml = `<div class="card-imagenes ${cls}">
       ${imgs.slice(0,3).map(img =>
-        `<img src="${imgUrl(img)}" loading="lazy" class="img-lightbox" data-src="${imgUrl(img)}" style="cursor:zoom-in" />`
+        `<img src="/static/${img}" loading="lazy" class="img-lightbox" data-src="/static/${img}" style="cursor:zoom-in" />`
       ).join('')}
     </div>`;
   }
 
   const avatarHtml = p.autor_foto
-    ? `<img src="${imgUrl(p.autor_foto)}" class="avatar" />`
+    ? `<img src="/static/${p.autor_foto}" class="avatar" />`
     : `<div class="avatar">👤</div>`;
 
-  const pid = sanitizarId(p.id);
-  const ptel = sanitizarTel(p.tel_autor || p.telefono);
   return `
-    <div class="card ${p.destacada ? 'card-destacada' : ''}" id="pub-${pid}">
+    <div class="card ${p.destacada ? 'card-destacada' : ''}" id="pub-${p.id}">
       <div class="card-header">
         ${avatarHtml}
         <div class="card-meta">
@@ -191,33 +132,24 @@ function renderPub(p) {
         </div>
         ${p.destacada ? '<span class="badge-destacada">⭐ Destacado</span>' : ''}
         <span class="card-badge">🏷 Venta</span>
-        ${(SESION_ACTIVA && p.tel_autor === _miTel) ? `
-          <button class="card-del-btn" onclick="event.stopPropagation();eliminarPubFeed(${pid})" title="Eliminar publicación">
-            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <polyline points="3 6 5 6 21 6"/>
-              <path d="M19 6l-1 14H6L5 6"/>
-              <path d="M10 11v6M14 11v6"/>
-              <path d="M9 6V4h6v2"/>
-            </svg>
-          </button>` : ''}
       </div>
-      <div class="card-contenido" style="cursor:pointer" onclick="location.href='/publicacion/${pid}'">${escapeHtml(p.contenido)}</div>
+      <div class="card-contenido" style="cursor:pointer" onclick="location.href='/publicacion/${p.id}'">${escapeHtml(p.contenido)}</div>
       ${p.precio ? `<div class="card-precio">$${escapeHtml(String(p.precio))}</div>` : ''}
       ${imgsHtml}
       <div class="card-acciones">
-        <button class="btn-accion" id="like-btn-${pid}" onclick="reaccionar(${pid})">
+        <button class="btn-accion" id="like-btn-${p.id}" onclick="reaccionar(${p.id})">
           <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
           </svg>
-          <span id="likes-${pid}">${p.total_likes}</span>
+          <span id="likes-${p.id}">${p.total_likes}</span>
         </button>
-        <button class="btn-accion" onclick="toggleComentarios(${pid})">
+        <button class="btn-accion" onclick="toggleComentarios(${p.id})">
           <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
           </svg>
-          <span id="coms-count-${pid}">${p.total_comentarios}</span>
+          <span id="coms-count-${p.id}">${p.total_comentarios}</span>
         </button>
-        <button class="btn-accion btn-wa" onclick="contactarWA('${ptel}', ${pid}, this.dataset.desc)" data-desc="${escapeHtml(p.contenido).slice(0,60)}">
+        <button class="btn-accion btn-wa" onclick="contactarWA('${p.tel_autor || p.telefono}', ${p.id}, \`${escapeHtml(p.contenido).slice(0,60)}\`)">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
             <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
             <path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.118 1.528 5.847L.057 23.882l6.198-1.448A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.894a9.878 9.878 0 01-5.031-1.378l-.361-.214-3.681.861.878-3.596-.235-.369A9.865 9.865 0 012.106 12C2.106 6.58 6.58 2.106 12 2.106c5.421 0 9.894 4.474 9.894 9.894 0 5.421-4.473 9.894-9.894 9.894z"/>
@@ -225,7 +157,7 @@ function renderPub(p) {
           Contactar
         </button>
       </div>
-      <div class="comentarios-box" id="coms-${pid}"></div>
+      <div class="comentarios-box" id="coms-${p.id}"></div>
     </div>`;
 }
 
@@ -312,15 +244,7 @@ async function publicar() {
   if (vid?.files.length) formData.append('videos', vid.files[0]);
 
   try {
-    const csrf = await getCsrfToken();
-    const res = await fetch('/api/publicaciones', {
-      method: 'POST',
-      body: formData,
-      credentials: 'include',
-      headers: { 'X-CSRF-Token': csrf }
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'No se pudo publicar');
+    await fetch('/api/publicaciones', { method: 'POST', body: formData, credentials: 'include' });
     cerrarModal();
     toast('✅ Publicación creada');
     cargarPublicaciones();
@@ -411,21 +335,6 @@ async function enviarComentario(pubId) {
     input.disabled = false;
     input?.focus();
   }
-}
-
-/* ===== Eliminar publicación desde feed ===== */
-async function eliminarPubFeed(pubId) {
-  if (!confirm('¿Eliminar esta publicación?')) return;
-  try {
-    await api(`/api/publicaciones/${pubId}`, 'DELETE');
-    const card = document.getElementById(`pub-${pubId}`);
-    if (card) {
-      card.style.transition = 'opacity .3s';
-      card.style.opacity = '0';
-      setTimeout(() => card.remove(), 300);
-    }
-    toast('🗑 Publicación eliminada');
-  } catch(e) { toast(e.message); }
 }
 
 /* ===== WhatsApp ===== */

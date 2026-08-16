@@ -1,6 +1,6 @@
 import os
 import logging
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify
 from apscheduler.schedulers.background import BackgroundScheduler
 from security import validate_csrf
 from config import Config, init_cloudinary
@@ -82,7 +82,7 @@ from routes.mensajes import msg_bp
 from routes.notificaciones import notif_bp
 from routes.directorio import dir_bp
 from routes.views import views_bp
-from routes.transmisiones import transmisiones_bp  # <--- IMPORTANTE
+from routes.transmisiones import transmisiones_bp
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(pub_bp)
@@ -92,13 +92,7 @@ app.register_blueprint(msg_bp)
 app.register_blueprint(notif_bp)
 app.register_blueprint(dir_bp)
 app.register_blueprint(views_bp)
-app.register_blueprint(transmisiones_bp)  # <--- IMPORTANTE
-
-# ===== RUTA PÚBLICA DE TRANSMISIONES =====
-@views_bp.route('/transmisiones')
-def transmisiones():
-    return render_template('transmisiones.html')
-
+app.register_blueprint(transmisiones_bp)
 
 # ===== SCHEDULER: LIMPIEZA AUTOMÁTICA =====
 def limpieza_programada():
