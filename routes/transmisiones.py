@@ -2,22 +2,73 @@ from flask import Blueprint, request, jsonify, current_app
 from db import get_db
 from security import require_api_admin
 import html
+import re
 from routes.push import enviar_notificacion_a_todos
 
 transmisiones_bp = Blueprint('transmisiones', __name__, url_prefix='/api/transmisiones')
 
 
 def validar_url(url):
+    """
+    Valida que la URL sea un ID de video de YouTube (11 caracteres) o una URL de YouTube válida.
+    """
     if not url:
         return False
     url = url.strip()
-    if len(url) == 11 and url.isalnum() and '-' in url:
+    
+    # Caso 1: ID de 11 caracteres (puede incluir - y _)
+    if re.match(r'^[a-zA-Z0-9_-]{11}$', url):
         return True
-    if url.startswith('https://www.youtube.com/') or url.startswith('https://youtu.be/'):
-        return True
+    
+    # Caso 2: URL de YouTube (varias variantes)
+    youtube_patterns = [
+        r'^https?://(www\.)?youtube\.com/embed/.+$',
+        r'^https?://(www\.)?youtube\.com/watch\?v=.+$',
+        r'^https?://(www\.)?youtube\.com/live_stream\?channel=.+$',
+        r'^https?://youtu\.be/.+$',
+        r'^https?://(www\.)?youtube\.com/@.+/live$',
+        r'^https?://(www\.)?youtube\.com/live/.+$'
+    ]
+    for pattern in youtube_patterns:
+        if re.match(pattern, url):
+            return True
+    
+    # Caso 3: Cualquier URL que empiece con http:// o https:// (para otros servicios)
     if url.startswith('http://') or url.startswith('https://'):
         return True
+    
     return False
+
+
+def obtener_embed_url(url):
+    """Convierte una URL o ID de YouTube a URL de embed."""
+    url = url.strip()
+    
+    # Si es un ID de 11 caracteres
+    if re.match(r'^[a-zA-Z0-9_-]{11}$', url):
+        return f"https://www.youtube.com/embed/{url}"
+    
+    # Si es una URL de YouTube
+    if 'youtube.com/watch?v=' in url:
+        video_id = url.split('v=')[1].split('&')[0]
+        return f"https://www.youtube.com/embed/{video_id}"
+    
+    if 'youtu.be/' in url:
+        video_id = url.split('youtu.be/')[1].split('?')[0]
+        return f"https://www.youtube.com/embed/{video_id}"
+    
+    if 'youtube.com/embed/' in url:
+        return url  # Ya es embed
+    
+    if 'youtube.com/live_stream?channel=' in url:
+        return url  # Canal en vivo
+    
+    if 'youtube.com/live/' in url:
+        video_id = url.split('youtube.com/live/')[1].split('?')[0]
+        return f"https://www.youtube.com/embed/{video_id}"
+    
+    # Si no se reconoce, devolver la URL tal cual (confiando en que es válida)
+    return url
 
 
 @transmisiones_bp.route('/publicas', methods=['GET'])
@@ -97,7 +148,9 @@ def crear():
     if categoria not in ('noticias', 'deportes', 'eventos'):
         return jsonify({'error': 'Categoría inválida'}), 400
     if not validar_url(url):
-        return jsonify({'error': 'URL inválida'}), 400
+        # Log para depuración
+        current_app.logger.error(f"URL inválida: {url}")
+        return jsonify({'error': 'URL inválida. Asegúrate de usar un ID de YouTube (11 caracteres) o una URL de YouTube válida.'}), 400
 
     db = get_db()
     cur = db.cursor()
