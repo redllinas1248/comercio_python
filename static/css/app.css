@@ -965,7 +965,7 @@ body {
 .seccion-btn:hover::before { opacity: 1; }
 .seccion-btn:active { transform: scale(.98); }
 
-/* ===== TRANSMISIÓN MILENIO NOTICIAS ===== */
+/* ===== TRANSMISIÓN EN VIVO ===== */
 .youtube-live-wrap {
   margin: 0 0 .9rem;
   background: var(--bg2);
@@ -990,6 +990,7 @@ body {
   border-radius: 50%;
   background: #ef4444;
   box-shadow: 0 0 0 4px rgba(239,68,68,.12);
+  animation: pulse-dot 1.2s ease-in-out infinite;
 }
 
 .youtube-live-info {
@@ -1009,26 +1010,21 @@ body {
   color: var(--muted);
 }
 
-/* ===== REPRODUCTOR SIN BARRAS NEGRAS ===== */
+/* Contenedor del video: sin aspect-ratio fijo, para que se adapte al contenido */
 .youtube-live-video {
   position: relative;
   width: 100%;
   background: #000;
-  /* Ya no forzamos aspect-ratio fijo */
 }
 
+/* iframe como bloque normal, no absoluto */
 .youtube-live-video iframe {
+  display: block;
   width: 100%;
   height: auto;
   aspect-ratio: auto; /* Deja que YouTube decida el ratio */
-  min-height: 300px;  /* Altura mínima para que no se vea muy pequeño */
-  display: block;
+  min-height: 200px; /* Altura mínima para que no se vea muy pequeño */
   border: 0;
-}
-
-/* Opcional: si quieres que el video ocupe todo el ancho sin bordes negros,
-   puedes agregar un fondo que se adapte al contenido */
-.youtube-live-video iframe {
   background: #000;
 }
 
@@ -1418,140 +1414,6 @@ body {
 .card:hover .card-del-btn { opacity: 1; }
 .card-del-btn:hover { background: rgba(248,113,113,.1); color: var(--error); }
 
-/* ===== MODO VISITANTE ===== */
-.visitor-banner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(56,189,248,.08);
-  border-bottom: 1px solid rgba(56,189,248,.15);
-  padding: .6rem 1rem;
-  font-size: .82rem;
-  color: var(--muted);
-  text-align: center;
-}
-.visitor-link {
-  color: var(--accent);
-  font-weight: 600;
-  text-decoration: none;
-  margin: 0 .2rem;
-}
-.visitor-link:hover { text-decoration: underline; }
-
-/* FAB login para visitantes */
-.fab-login {
-  background: var(--bg2) !important;
-  border: 1px solid var(--border2) !important;
-  color: var(--accent) !important;
-  box-shadow: 0 4px 20px rgba(56,189,248,.2) !important;
-  text-decoration: none;
-}
-.fab-login:hover {
-  background: var(--bg3) !important;
-  box-shadow: 0 6px 24px rgba(56,189,248,.3) !important;
-}
-
-/* Botón login en navbar para visitantes */
-.nav-login-btn {
-  background: var(--accent2) !important;
-  color: #fff !important;
-  border-radius: 8px !important;
-  width: auto !important;
-  padding: 0 .75rem !important;
-  font-size: .8rem !important;
-  font-weight: 600 !important;
-  gap: .3rem !important;
-}
-.nav-login-btn::after { content: 'Entrar'; }
-.nav-login-btn:hover { background: var(--accent) !important; }
-
-/* Modal de login requerido */
-.modal-login-req-inner {
-  text-align: center;
-  padding: 2rem 1.5rem 1.75rem;
-  border-radius: 20px 20px 0 0;
-}
-.modal-login-ico { font-size: 2.5rem; margin-bottom: .75rem; }
-.modal-login-titulo { font-size: 1.1rem; font-weight: 600; margin-bottom: .5rem; }
-.modal-login-desc {
-  font-size: .85rem; color: var(--muted);
-  line-height: 1.55; margin-bottom: 1.25rem;
-}
-.modal-login-btn-reg {
-  display: block;
-  background: var(--accent2); color: #fff;
-  border-radius: 10px; text-decoration: none;
-  font-weight: 600; font-size: .95rem;
-  padding: .8rem; margin-bottom: .5rem;
-  transition: background .15s;
-}
-.modal-login-btn-reg:hover { background: var(--accent); }
-.modal-login-btn-login {
-  display: block;
-  background: var(--bg3);
-  border: 1px solid var(--border2);
-  color: var(--text); border-radius: 10px;
-  text-decoration: none; font-size: .9rem;
-  padding: .75rem; margin-bottom: .75rem;
-  transition: background .15s;
-}
-.modal-login-btn-login:hover { background: var(--bg); }
-.modal-login-cancelar {
-  background: none; border: none;
-  color: var(--muted); font-family: 'DM Sans', sans-serif;
-  font-size: .82rem; cursor: pointer; text-decoration: underline;
-}
-
-/* Botón login en sección comentarios */
-.com-login-btn {
-  width: 100%; background: none;
-  border: 1px solid var(--border2);
-  border-radius: 8px; color: var(--accent);
-  font-family: 'DM Sans', sans-serif;
-  font-size: .82rem; font-weight: 500;
-  padding: .55rem; cursor: pointer; margin-top: .5rem;
-  transition: background .15s;
-}
-.com-login-btn:hover { background: rgba(56,189,248,.07); }
-
-/* ===== BORRAR NOTIFICACIONES ===== */
-.notif-item { position: relative; }
-.notif-del-btn {
-  background: none; border: none;
-  color: var(--muted); cursor: pointer;
-  padding: .4rem; border-radius: 6px;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-  transition: background .15s, color .15s;
-  opacity: 0;
-}
-.notif-item:hover .notif-del-btn { opacity: 1; }
-.notif-del-btn:hover { background: rgba(248,113,113,.1); color: var(--error); }
-
-/* ===== BORRAR CONVERSACION ===== */
-.chat-del-btn {
-  background: none; border: none;
-  color: var(--muted); cursor: pointer;
-  width: 36px; height: 36px;
-  display: flex; align-items: center; justify-content: center;
-  border-radius: 8px; margin-left: auto;
-  transition: background .15s, color .15s;
-}
-.chat-del-btn:hover { background: rgba(248,113,113,.1); color: var(--error); }
-
-/* ===== BORRAR PUBLICACIÓN EN FEED ===== */
-.card-del-btn {
-  background: none; border: none;
-  color: var(--muted); cursor: pointer;
-  padding: .35rem; border-radius: 6px;
-  display: flex; align-items: center; justify-content: center;
-  margin-left: auto;
-  opacity: 0;
-  transition: opacity .15s, background .15s, color .15s;
-}
-.card:hover .card-del-btn { opacity: 1; }
-.card-del-btn:hover { background: rgba(248,113,113,.1); color: var(--error); }
-
 /* ===== COMPARTIR EN REDES ===== */
 .share-section {
   background: var(--bg2);
@@ -1674,6 +1536,7 @@ body {
     width: 100%;
   }
 }
+
 /* ===== CARRUSEL DE DESTACADAS ===== */
 .destacadas-header {
   display: flex;
@@ -1846,6 +1709,7 @@ body {
   padding: 0;
   text-decoration: underline;
 }
+
 /* ===== BOTÓN TRANSMISIONES EN VIVO EN NAVBAR ===== */
 .nav-transmisiones {
   position: relative;
@@ -1866,59 +1730,7 @@ body {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.4; transform: scale(0.8); }
 }
-/* ===== REPRODUCTOR DE TRANSMISIONES ===== */
-.youtube-live-wrap {
-  margin: 0 0 0.9rem;
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0,0,0,.12);
-}
-.youtube-live-header {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  padding: 0.75rem 0.9rem;
-  border-bottom: 1px solid var(--border);
-}
-.youtube-live-dot {
-  width: 9px;
-  height: 9px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  background: #ef4444;
-  box-shadow: 0 0 0 4px rgba(239,68,68,.12);
-  animation: pulse-dot 1.2s ease-in-out infinite;
-}
-.youtube-live-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-}
-.youtube-live-title {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text);
-}
-.youtube-live-sub {
-  font-size: 0.72rem;
-  color: var(--muted);
-}
-.youtube-live-video {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  background: #000;
-}
-.youtube-live-video iframe {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  border: 0;
-  display: block;
-}
+
 /* ===== BOTÓN DE INSTALACIÓN ===== */
 .nav-install {
   background: rgba(52, 211, 153, 0.15) !important;
@@ -1938,6 +1750,7 @@ body {
 .nav-install:hover {
   background: rgba(52, 211, 153, 0.25) !important;
 }
+
 /* ===== BÚSQUEDA DE USUARIOS ===== */
 .search-section {
   margin-bottom: 1.5rem;
@@ -2040,6 +1853,7 @@ body {
   font-size: 0.8rem;
   color: var(--muted);
 }
+
 /* ===== ADMIN: TRANSMISIONES ===== */
 .trans-admin-form {
   background: var(--bg2);
@@ -2106,7 +1920,8 @@ body {
     grid-column: span 2;
   }
 }
-/* ===== BOTONES DE COMPARTIR ===== */
+
+/* ===== BOTONES DE COMPARTIR (versión móvil mejorada) ===== */
 .share-section {
   padding: 0.75rem 1rem;
   text-align: center;

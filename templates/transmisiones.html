@@ -61,11 +61,10 @@
   <span id="push-status" style="margin-left:0.5rem; font-size:0.8rem; color:var(--muted);"></span>
 </div>
 
-<!-- ===== ANUNCIO ROTATORIO (cada 3 minutos) ===== -->
+<!-- ===== ANUNCIO ROTATORIO ===== -->
 <div id="ad-rotator" class="ad-container" style="margin: 1rem 0; min-height: 120px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center;">
   <div class="ad-label">Anuncio</div>
   <div id="ad-content">
-    <!-- El JS cargará el primer anuncio aquí -->
     <p style="color:var(--muted); font-size:0.8rem;">Cargando anuncio...</p>
   </div>
 </div>
@@ -266,7 +265,6 @@ function rotateAd() {
     const adId = adUnitIds[currentAdIndex];
     currentAdIndex = (currentAdIndex + 1) % adUnitIds.length;
 
-    // Construir el código del anuncio
     adContainer.innerHTML = `
         <script>
             atOptions = {
@@ -280,7 +278,6 @@ function rotateAd() {
         <script src="https://www.highperformanceformat.com/${adId}/invoke.js"><\/script>
     `;
 
-    // Forzar la recarga de los scripts
     const scripts = adContainer.querySelectorAll('script');
     scripts.forEach(oldScript => {
         const newScript = document.createElement('script');
@@ -288,14 +285,13 @@ function rotateAd() {
             newScript.setAttribute(attr.name, attr.value);
         });
         newScript.textContent = oldScript.textContent;
-        oldScript.parentNode.replaceChild(newScript, oldScript);
+        oldScript.parentNode.replaceChild(newScript, newScript);
     });
 }
 
-// Iniciar el ciclo de anuncios
 setTimeout(() => {
-    rotateAd(); // Carga el primer anuncio
-    setInterval(rotateAd, 180000); // Rota cada 3 minutos (180,000 ms)
+    rotateAd();
+    setInterval(rotateAd, 180000);
 }, 1500);
 
 // ============================================================
