@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 
-<!-- Botón flotante -->
+<!-- ===== BOTÓN FLOTANTE ===== -->
 <div id="fab-wrap">
   <button class="fab" id="fab-pub" style="display:none" onclick="abrirModal()" title="Nueva publicación">
     <svg width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
@@ -17,7 +17,7 @@
   </a>
 </div>
 
-<!-- Banner visitante -->
+<!-- ===== BANNER VISITANTE ===== -->
 <div class="visitor-banner" id="visitor-banner" style="display:none">
   <div class="visitor-banner-txt">
     👋 Estás viendo en modo invitado.
@@ -26,7 +26,7 @@
   </div>
 </div>
 
-<!-- ===== 1. CARRUSEL DE DESTACADAS ===== -->
+<!-- ===== CARRUSEL DE DESTACADAS ===== -->
 <div id="destacadas-wrap" style="margin-bottom:1rem;">
   <div class="destacadas-header">
     <span class="destacadas-icon">⭐</span>
@@ -37,7 +37,7 @@
   </div>
 </div>
 
-<!-- ===== 2. CONTADORES DE ESTADÍSTICAS ===== -->
+<!-- ===== CONTADORES DE ESTADÍSTICAS ===== -->
 <div class="stats-bar" id="stats-bar">
   <div class="stat-item">
     <span class="stat-icon">👥</span>
@@ -56,7 +56,7 @@
   </div>
 </div>
 
-<!-- ===== 3. WIDGET DE PUNTOS (solo si está logueado) ===== -->
+<!-- ===== WIDGET DE PUNTOS ===== -->
 <div id="puntos-widget" style="display:none; margin-bottom:1rem;">
   <div class="puntos-section" style="border-radius:var(--radius);padding:1rem;background:var(--bg2);border:1px solid var(--border);">
     <div class="puntos-wrap">
@@ -83,7 +83,7 @@
   </div>
 </div>
 
-<!-- ===== 4. BOTONES DE SECCIONES ===== -->
+<!-- ===== BOTONES DE SECCIONES ===== -->
 <div class="secciones-btns">
   <a href="/servicios" class="seccion-btn seccion-servicios">
     <span class="seccion-ico">🔧</span>
@@ -107,10 +107,32 @@
   </a>
 </div>
 
-<!-- ===== 5. FEED DE PUBLICACIONES ===== -->
+<!-- ===== FEED DE PUBLICACIONES ===== -->
 <div id="feed" class="feed"></div>
 
-<!-- MODALES -->
+<!-- ===== ADSTERRA - BANNER 300x250 (dentro del feed, cada 4 publicaciones) ===== -->
+<div id="ad-feed-middle" style="display:none;" class="ad-container ad-container-300">
+  <div class="ad-label">Anuncio</div>
+  <script>
+    atOptions = {
+      'key' : '3c28692570519f7a1f14c0a8fd20aa78',
+      'format' : 'iframe',
+      'height' : 250,
+      'width' : 300,
+      'params' : {}
+    };
+  </script>
+  <script src="https://www.highperformanceformat.com/3c28692570519f7a1f14c0a8fd20aa78/invoke.js"></script>
+</div>
+
+<!-- ===== ADSTERRA - NATIVE BANNER (al final del feed) ===== -->
+<div class="ad-container ad-native" id="ad-feed-bottom">
+  <div class="ad-label">Contenido patrocinado</div>
+  <script async="async" data-cfasync="false" src="https://pl30899860.effectivecpmnetwork.com/2381fde58e67195cb918ab6a1548b1e4/invoke.js"></script>
+  <div id="container-2381fde58e67195cb918ab6a1548b1e4"></div>
+</div>
+
+<!-- ===== MODALES ===== -->
 <div class="modal-overlay" id="modal-login-req" onclick="cerrarModalLogin(event)">
   <div class="modal modal-login-req-inner">
     <div class="modal-login-ico">🔐</div>
@@ -165,8 +187,9 @@
   </div>
 </div>
 
+<!-- ===== SCRIPTS DEL INDEX ===== -->
 <script>
-// Función para alternar ayuda de puntos en el widget
+// Función para alternar ayuda de puntos
 function toggleAyudaPuntosWidget() {
   const el = document.getElementById('pw-exp');
   el.style.display = el.style.display === 'none' ? 'block' : 'none';
@@ -268,6 +291,33 @@ async function cargarPuntosWidget() {
     widget.style.display = 'none';
   }
 }
+
+// ===== Extender cargarPublicaciones para insertar anuncios =====
+const _cargarPublicacionesOriginal = cargarPublicaciones;
+cargarPublicaciones = async function() {
+  await _cargarPublicacionesOriginal();
+  // Mostrar el anuncio de 300x250 en el feed después de insertar las publicaciones
+  const feed = document.getElementById('feed');
+  const adMiddle = document.getElementById('ad-feed-middle');
+  if (!feed || !adMiddle) return;
+  const cards = feed.querySelectorAll('.card');
+  // Insertar anuncio después de la 4ta publicación (si hay al menos 5 publicaciones)
+  if (cards.length >= 5) {
+    adMiddle.style.display = 'block';
+    // Si el anuncio ya está dentro del feed, no lo volvemos a insertar
+    if (!document.getElementById('ad-feed-middle-inserted')) {
+      adMiddle.id = 'ad-feed-middle-inserted';
+      cards[4].after(adMiddle);
+    }
+  } else {
+    // Si no hay suficientes publicaciones, mostrar el anuncio al final del feed
+    adMiddle.style.display = 'block';
+    if (!document.getElementById('ad-feed-middle-inserted')) {
+      adMiddle.id = 'ad-feed-middle-inserted';
+      feed.appendChild(adMiddle);
+    }
+  }
+};
 
 // ===== Inicialización =====
 document.addEventListener('DOMContentLoaded', async function() {

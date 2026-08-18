@@ -12,34 +12,103 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="/static/css/app.css"/>
+
+  <!-- ===== ADSTERRA - POPUNDER (se activa con clics) ===== -->
+  <script src="https://pl30899859.effectivecpmnetwork.com/6a/8c/31/6a8c3191b0f79bf85b894e5db8313e9a.js"></script>
+
+  <!-- ===== ADSTERRA - SOCIAL BAR (flotante) ===== -->
+  <script src="https://pl30899863.effectivecpmnetwork.com/b9/00/d4/b900d4c236d22691cfa4d444601c48dd.js"></script>
+
+  <style>
+    .ad-container {
+      text-align: center;
+      margin: 0.75rem auto;
+      min-height: 90px;
+      background: var(--bg2);
+      border-radius: var(--radius);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      padding: 0.25rem 0;
+      max-width: 100%;
+    }
+    .ad-container iframe,
+    .ad-container img {
+      max-width: 100%;
+      border: 0;
+    }
+    .ad-label {
+      font-size: 0.55rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.15rem;
+      opacity: 0.6;
+    }
+    .ad-container-728 {
+      min-height: 100px;
+    }
+    .ad-container-300 {
+      min-height: 260px;
+    }
+    .ad-native {
+      min-height: 150px;
+      padding: 0.5rem 0;
+    }
+    .ad-smartlink {
+      min-height: 40px;
+      background: transparent;
+      border: none;
+      padding: 0.25rem 0;
+    }
+    .ad-smartlink a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.75rem;
+      transition: color 0.15s;
+    }
+    .ad-smartlink a:hover {
+      color: var(--accent);
+    }
+    @media (max-width: 768px) {
+      .ad-container-728 {
+        min-height: 80px;
+      }
+      .ad-container-300 {
+        min-height: 220px;
+      }
+    }
+  </style>
 </head>
 <body>
 
-  <!-- Banner -->
+  <!-- ===== BANNER SUPERIOR (LOGO) ===== -->
   <div class="site-banner">
     <img src="{{ logo_url }}" alt="Ventas Locales José Azueta" class="banner-img"/>
   </div>
 
-  <!-- Navbar -->
+  <!-- ===== NAVBAR ===== -->
   <nav class="navbar">
     <a href="/" class="brand">
       <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
         <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/>
       </svg>
-      <span></span>
+      <span>Inicio</span>
     </a>
     <div class="nav-links">
-      <!-- BOTÓN DE INSTALACIÓN PWA (oculto por defecto) -->
+      <!-- BOTÓN DE INSTALACIÓN PWA -->
       <button id="install-btn" class="nav-link nav-install" style="display:none" onclick="instalarApp()" title="Instalar app">
         <svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
           <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
           <polyline points="7 10 12 15 17 10"/>
           <line x1="12" y1="15" x2="12" y2="3"/>
         </svg>
-        <span></span>
+        <span>Instalar</span>
       </button>
 
-      <!-- TRANSMISIONES EN VIVO -->
       <a href="/transmisiones" class="nav-link nav-transmisiones" title="Transmisiones en vivo">
         <svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
           <polygon points="23 7 16 12 23 17 23 7"/>
@@ -48,21 +117,18 @@
         <span class="live-dot"></span>
       </a>
 
-      <!-- BUSCAR -->
       <a href="/buscar" class="nav-link" title="Buscar">
         <svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
           <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
         </svg>
       </a>
 
-      <!-- MENSAJES (autenticado) -->
       <a href="/mensajes" class="nav-link nav-auth" style="display:none" title="Mensajes">
         <svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
           <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
         </svg>
       </a>
 
-      <!-- NOTIFICACIONES (autenticado) -->
       <a href="/notificaciones" class="nav-link nav-auth nav-notif" style="display:none" id="badge-notif" title="Notificaciones">
         <svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
           <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>
@@ -70,14 +136,12 @@
         <span class="notif-badge" id="notif-count" style="display:none"></span>
       </a>
 
-      <!-- PERFIL (autenticado) -->
       <a href="/perfil" class="nav-link nav-auth" style="display:none" title="Perfil">
         <svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
           <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
         </svg>
       </a>
 
-      <!-- LOGIN (visitante) -->
       <a href="/login" class="nav-link nav-guest nav-login-btn" title="Iniciar sesión">
         <svg width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
           <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/>
@@ -88,12 +152,41 @@
     </div>
   </nav>
 
+  <!-- ===== ADSTERRA - BANNER 728x90 (debajo del navbar) ===== -->
+  <div class="container" style="max-width:640px; margin:0 auto; padding:0 1rem;">
+    <div class="ad-container ad-container-728">
+      <div class="ad-label">Anuncio</div>
+      <script>
+        atOptions = {
+          'key' : 'c8faf59902984dd8cbd09b2dbce9b59a',
+          'format' : 'iframe',
+          'height' : 90,
+          'width' : 728,
+          'params' : {}
+        };
+      </script>
+      <script src="https://www.highperformanceformat.com/c8faf59902984dd8cbd09b2dbce9b59a/invoke.js"></script>
+    </div>
+  </div>
+
+  <!-- ===== CONTENIDO PRINCIPAL ===== -->
   <main id="app" class="container">
     {% block content %}{% endblock %}
   </main>
 
+  <!-- ===== ADSTERRA - SMARTLINK (footer) ===== -->
+  <div class="container" style="max-width:640px; margin:0 auto; padding:0 1rem 1rem;">
+    <div class="ad-container ad-smartlink">
+      <a href="https://www.effectivecpmnetwork.com/p78n4512?key=7aae79a74874dcc277ccad3bb98d4cd5" target="_blank" rel="noopener noreferrer">
+        <span style="opacity:0.5;">🔗</span> Publicidad - Apoya este sitio
+      </a>
+    </div>
+  </div>
+
+  <!-- ===== TOAST ===== -->
   <div id="toast" class="toast hidden"></div>
 
+  <!-- ===== SCRIPTS ===== -->
   <script src="/static/js/app.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
