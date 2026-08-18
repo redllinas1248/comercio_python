@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 
-<!-- ===== BOTÓN FLOTANTE ===== -->
+<!-- Botón flotante -->
 <div id="fab-wrap">
   <button class="fab" id="fab-pub" style="display:none" onclick="abrirModal()" title="Nueva publicación">
     <svg width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
@@ -17,7 +17,7 @@
   </a>
 </div>
 
-<!-- ===== BANNER VISITANTE ===== -->
+<!-- Banner visitante -->
 <div class="visitor-banner" id="visitor-banner" style="display:none">
   <div class="visitor-banner-txt">
     👋 Estás viendo en modo invitado.
@@ -110,26 +110,21 @@
 <!-- ===== FEED DE PUBLICACIONES ===== -->
 <div id="feed" class="feed"></div>
 
-<!-- ===== ADSTERRA - BANNER 300x250 (dentro del feed, cada 4 publicaciones) ===== -->
-<div id="ad-feed-middle" style="display:none;" class="ad-container ad-container-300">
-  <div class="ad-label">Anuncio</div>
-  <script>
-    atOptions = {
-      'key' : '3c28692570519f7a1f14c0a8fd20aa78',
-      'format' : 'iframe',
-      'height' : 250,
-      'width' : 300,
-      'params' : {}
-    };
-  </script>
-  <script src="https://www.highperformanceformat.com/3c28692570519f7a1f14c0a8fd20aa78/invoke.js"></script>
-</div>
+<!-- ===== BANNER 300x250 (dentro del feed, se inserta desde JS) ===== -->
+<!-- El script de app.js insertará este banner automáticamente -->
 
-<!-- ===== ADSTERRA - NATIVE BANNER (al final del feed) ===== -->
-<div class="ad-container ad-native" id="ad-feed-bottom">
-  <div class="ad-label">Contenido patrocinado</div>
+<!-- ===== NATIVE BANNER (al final del feed) ===== -->
+<div class="ad-container" id="ad-bottom" style="margin-top:1.5rem;">
+  <div class="ad-label">Anuncio</div>
   <script async="async" data-cfasync="false" src="https://pl30899860.effectivecpmnetwork.com/2381fde58e67195cb918ab6a1548b1e4/invoke.js"></script>
   <div id="container-2381fde58e67195cb918ab6a1548b1e4"></div>
+</div>
+
+<!-- ===== SMARTLINK (footer) ===== -->
+<div style="text-align:center; margin-top:1.5rem; padding:1rem 0; border-top:1px solid var(--border);">
+  <a href="https://www.effectivecpmnetwork.com/p78n4512?key=7aae79a74874dcc277ccad3bb98d4cd5" target="_blank" style="color:var(--muted); font-size:0.7rem; text-decoration:none; opacity:0.5;">
+    Anuncio
+  </a>
 </div>
 
 <!-- ===== MODALES ===== -->
@@ -187,17 +182,17 @@
   </div>
 </div>
 
-<!-- ===== SCRIPTS DEL INDEX ===== -->
 <script>
-// Función para alternar ayuda de puntos
+// Función para alternar ayuda de puntos en el widget
 function toggleAyudaPuntosWidget() {
   const el = document.getElementById('pw-exp');
   el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
 
-// ===== Cargar destacadas =====
+// ===== Cargar destacadas (con manejo de errores) =====
 async function cargarDestacadas() {
   const slider = document.getElementById('destacadas-slider');
+  if (!slider) return;
   try {
     const pubs = await api('/api/publicaciones/destacadas');
     if (!pubs.length) {
@@ -259,6 +254,7 @@ async function cargarDestacadas() {
     });
     window._sliderGoTo = goTo;
   } catch(e) {
+    console.error('Error cargando destacadas:', e);
     slider.innerHTML = `<p style="color:var(--error);font-size:.82rem;">Error al cargar destacadas</p>`;
   }
 }
@@ -271,6 +267,7 @@ async function cargarEstadisticas() {
     document.getElementById('stat-pubs-hoy').textContent = data.pubs_hoy;
     document.getElementById('stat-visitas').textContent = data.visitas_totales.toLocaleString();
   } catch(e) {
+    console.error('Error cargando estadísticas:', e);
     document.getElementById('stat-usuarios').textContent = '—';
     document.getElementById('stat-pubs-hoy').textContent = '—';
     document.getElementById('stat-visitas').textContent = '—';
@@ -280,6 +277,7 @@ async function cargarEstadisticas() {
 // ===== Cargar widget de puntos =====
 async function cargarPuntosWidget() {
   const widget = document.getElementById('puntos-widget');
+  if (!widget) return;
   try {
     const data = await api('/api/auth/puntos');
     widget.style.display = 'block';
@@ -292,44 +290,25 @@ async function cargarPuntosWidget() {
   }
 }
 
-// ===== Extender cargarPublicaciones para insertar anuncios =====
-const _cargarPublicacionesOriginal = cargarPublicaciones;
-cargarPublicaciones = async function() {
-  await _cargarPublicacionesOriginal();
-  // Mostrar el anuncio de 300x250 en el feed después de insertar las publicaciones
-  const feed = document.getElementById('feed');
-  const adMiddle = document.getElementById('ad-feed-middle');
-  if (!feed || !adMiddle) return;
-  const cards = feed.querySelectorAll('.card');
-  // Insertar anuncio después de la 4ta publicación (si hay al menos 5 publicaciones)
-  if (cards.length >= 5) {
-    adMiddle.style.display = 'block';
-    // Si el anuncio ya está dentro del feed, no lo volvemos a insertar
-    if (!document.getElementById('ad-feed-middle-inserted')) {
-      adMiddle.id = 'ad-feed-middle-inserted';
-      cards[4].after(adMiddle);
-    }
-  } else {
-    // Si no hay suficientes publicaciones, mostrar el anuncio al final del feed
-    adMiddle.style.display = 'block';
-    if (!document.getElementById('ad-feed-middle-inserted')) {
-      adMiddle.id = 'ad-feed-middle-inserted';
-      feed.appendChild(adMiddle);
-    }
-  }
-};
-
 // ===== Inicialización =====
 document.addEventListener('DOMContentLoaded', async function() {
   await verificarSesion();
+  
+  // Asegurar que se carguen las estadísticas y destacadas después de un pequeño delay
+  // para dar tiempo a que los scripts de Adsterra terminen de cargar
+  setTimeout(async () => {
+    await cargarEstadisticas();
+    await cargarDestacadas();
+    if (SESION_ACTIVA) {
+      await cargarPuntosWidget();
+    } else {
+      const widget = document.getElementById('puntos-widget');
+      if (widget) widget.style.display = 'none';
+    }
+  }, 100);
+  
+  // Cargar feed (no depende de Adsterra)
   cargarPublicaciones();
-  cargarDestacadas();
-  cargarEstadisticas();
-  if (SESION_ACTIVA) {
-    cargarPuntosWidget();
-  } else {
-    document.getElementById('puntos-widget').style.display = 'none';
-  }
 });
 </script>
 {% endblock %}
