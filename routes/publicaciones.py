@@ -1,4 +1,5 @@
 import os
+import logging
 from flask import Blueprint, request, jsonify, current_app
 from werkzeug.utils import secure_filename
 from db import get_db
@@ -8,6 +9,7 @@ import cloudinary.api
 import html
 
 pub_bp = Blueprint('publicaciones', __name__, url_prefix='/api/publicaciones')
+logger = logging.getLogger(__name__)
 
 DIAS_PARA_ELIMINAR = 30  # Publicaciones más antiguas que esto se eliminarán
 
@@ -53,7 +55,6 @@ def limpiar_publicaciones_antiguas():
     db = get_db()
     cur = db.cursor()
 
-    # Obtener publicaciones antiguas (PostgreSQL syntax)
     cur.execute("""
         SELECT id, telefono
         FROM publicaciones
@@ -119,7 +120,7 @@ def listar():
     db = get_db()
     cur = db.cursor()
 
-    condiciones = ["p.destacada = false"]  # PostgreSQL usa false
+    condiciones = ["p.destacada = false"]
     params = []
     if categoria_id:
         condiciones.append("p.categoria_id = %s")
@@ -205,6 +206,11 @@ def crear():
     user = get_current_user()
     if not user:
         return jsonify({'error': 'No autenticado'}), 401
+
+    # Log de la publicación (IP y User-Agent)
+    ip = request.remote_addr
+    user_agent = request.headers.get('User-Agent', 'Desconocido')
+    logger.warning(f"Publicación creada por {user['telefono']} desde IP {ip} con navegador {user_agent}")
 
     contenido = html.escape(request.form.get('contenido', '').strip())[:5000]
     categoria_id = request.form.get('categoria_id')
