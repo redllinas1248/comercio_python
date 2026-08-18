@@ -2106,3 +2106,42 @@ body {
     grid-column: span 2;
   }
 }
+/* ===== BOTONES DE COMPARTIR ===== */
+.share-section {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+.share-section p {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-bottom: 0.5rem;
+}
+.share-btns {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+  color: #fff;
+  transition: opacity 0.2s;
+}
+.share-btn:hover {
+  opacity: 0.85;
+}
+.share-fb {
+  background: #1877f2;
+}
+.share-wacopy {
+  background: #25d366;
+}
