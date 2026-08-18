@@ -847,7 +847,6 @@ body {
   font-size: 1.5rem;
   font-weight: 700;
   color: #34d399;
-  padding: 0 0 0 0;
 }
 
 /* Campo precio en modal */
@@ -1010,22 +1009,31 @@ body {
   color: var(--muted);
 }
 
-/* Contenedor del video: sin aspect-ratio fijo, para que se adapte al contenido */
+/* Contenedor del video con altura adaptativa */
 .youtube-live-video {
   position: relative;
   width: 100%;
   background: #000;
+  aspect-ratio: 16 / 9; /* horizontal por defecto */
+  max-height: 80vh;
+  min-height: 250px;
 }
 
-/* iframe como bloque normal, no absoluto */
 .youtube-live-video iframe {
-  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
-  height: auto;
-  aspect-ratio: auto; /* Deja que YouTube decida el ratio */
-  min-height: 200px; /* Altura mínima para que no se vea muy pequeño */
+  height: 100%;
   border: 0;
-  background: #000;
+}
+
+/* En móviles (vertical) forzamos un aspecto más alto */
+@media (max-width: 600px) {
+  .youtube-live-video {
+    aspect-ratio: 9 / 16; /* vertical */
+    min-height: 50vh;
+  }
 }
 
 /* Servicios — azul */
@@ -1278,7 +1286,6 @@ body {
   min-height: 1rem;
   margin-bottom: .4rem;
 }
-
 
 /* ===== MODO VISITANTE ===== */
 .visitor-banner {
