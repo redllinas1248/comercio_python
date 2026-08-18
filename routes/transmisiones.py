@@ -2,38 +2,37 @@ from flask import Blueprint, request, jsonify, current_app
 from db import get_db
 from security import require_api_admin
 import html
-import re
 from routes.push import enviar_notificacion_a_todos
+import re
 
 transmisiones_bp = Blueprint('transmisiones', __name__, url_prefix='/api/transmisiones')
 
 
 def validar_url(url):
-    """
-    Valida que la URL sea un ID de video de YouTube (11 caracteres) o una URL de YouTube válida.
-    """
+    """Valida que la URL sea de YouTube o un ID válido."""
     if not url:
         return False
     url = url.strip()
     
-    # Caso 1: ID de 11 caracteres (puede incluir - y _)
+    # ID de video de 11 caracteres (alfanumérico con guiones)
     if re.match(r'^[a-zA-Z0-9_-]{11}$', url):
         return True
     
-    # Caso 2: URL de YouTube (varias variantes)
+    # URL de YouTube en cualquier formato
     youtube_patterns = [
-        r'^https?://(www\.)?youtube\.com/embed/.+$',
-        r'^https?://(www\.)?youtube\.com/watch\?v=.+$',
-        r'^https?://(www\.)?youtube\.com/live_stream\?channel=.+$',
-        r'^https?://youtu\.be/.+$',
-        r'^https?://(www\.)?youtube\.com/@.+/live$',
-        r'^https?://(www\.)?youtube\.com/live/.+$'
+        r'^https?://(www\.)?youtube\.com/embed/',
+        r'^https?://(www\.)?youtube\.com/watch\?v=',
+        r'^https?://youtu\.be/',
+        r'^https?://(www\.)?youtube\.com/live/',
+        r'^https?://(www\.)?youtube\.com/live_stream\?channel=',
+        r'^https?://(www\.)?youtube\.com/@',
     ]
+    
     for pattern in youtube_patterns:
         if re.match(pattern, url):
             return True
     
-    # Caso 3: Cualquier URL que empiece con http:// o https:// (para otros servicios)
+    # Cualquier URL que empiece con http/https (para otros servicios)
     if url.startswith('http://') or url.startswith('https://'):
         return True
     
@@ -41,14 +40,23 @@ def validar_url(url):
 
 
 def obtener_embed_url(url):
-    """Convierte una URL o ID de YouTube a URL de embed."""
+    """Convierte cualquier formato de URL de YouTube a embed URL."""
     url = url.strip()
     
-    # Si es un ID de 11 caracteres
+    # Si es un ID de video de 11 caracteres
     if re.match(r'^[a-zA-Z0-9_-]{11}$', url):
         return f"https://www.youtube.com/embed/{url}"
     
-    # Si es una URL de YouTube
+    # Si es una URL de canal en vivo (live_stream?channel=...)
+    if 'live_stream?channel=' in url:
+        # Si la URL ya tiene el formato correcto, devolverla
+        if url.startswith('https://www.youtube.com/embed/live_stream?channel='):
+            return url
+        # Si es un enlace directo al canal en vivo
+        channel_id = url.split('channel=')[1].split('&')[0]
+        return f"https://www.youtube.com/embed/live_stream?channel={channel_id}"
+    
+    # Si es una URL de YouTube normal
     if 'youtube.com/watch?v=' in url:
         video_id = url.split('v=')[1].split('&')[0]
         return f"https://www.youtube.com/embed/{video_id}"
@@ -60,14 +68,16 @@ def obtener_embed_url(url):
     if 'youtube.com/embed/' in url:
         return url  # Ya es embed
     
-    if 'youtube.com/live_stream?channel=' in url:
-        return url  # Canal en vivo
-    
     if 'youtube.com/live/' in url:
-        video_id = url.split('youtube.com/live/')[1].split('?')[0]
+        video_id = url.split('live/')[1].split('?')[0]
         return f"https://www.youtube.com/embed/{video_id}"
     
-    # Si no se reconoce, devolver la URL tal cual (confiando en que es válida)
+    if 'youtube.com/@' in url:
+        # Es un canal, extraer el nombre del canal
+        channel = url.split('@')[1].split('/')[0].split('?')[0]
+        return f"https://www.youtube.com/embed/live_stream?channel=@{channel}"
+    
+    # Si no, devolver la URL tal cual (para otros servicios)
     return url
 
 
@@ -148,9 +158,10 @@ def crear():
     if categoria not in ('noticias', 'deportes', 'eventos'):
         return jsonify({'error': 'Categoría inválida'}), 400
     if not validar_url(url):
-        # Log para depuración
-        current_app.logger.error(f"URL inválida: {url}")
-        return jsonify({'error': 'URL inválida. Asegúrate de usar un ID de YouTube (11 caracteres) o una URL de YouTube válida.'}), 400
+        return jsonify({'error': 'URL inválida'}), 400
+
+    # Convertir la URL a formato embed
+    embed_url = obtener_embed_url(url)
 
     db = get_db()
     cur = db.cursor()
@@ -162,12 +173,11 @@ def crear():
     cur.execute("""
         INSERT INTO transmisiones (titulo, descripcion, url, categoria, destacada, activo, orden)
         VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id
-    """, (titulo, descripcion, url, categoria, destacada, activo, orden))
+    """, (titulo, descripcion, embed_url, categoria, destacada, activo, orden))
     nuevo_id = cur.fetchone()[0]
     db.commit()
     cur.close()
 
-    # Enviar notificación push si la transmisión está activa o destacada
     if activo or destacada:
         try:
             enviar_notificacion_a_todos(
@@ -188,7 +198,6 @@ def actualizar(item_id):
         return error
     data = request.get_json(silent=True) or {}
 
-    # Obtener estado actual antes de actualizar
     db = get_db()
     cur = db.cursor()
     cur.execute("SELECT activo, destacada, titulo FROM transmisiones WHERE id = %s", (item_id,))
@@ -210,7 +219,7 @@ def actualizar(item_id):
                 url = str(data[campo]).strip()
                 if not validar_url(url):
                     return jsonify({'error': 'URL inválida'}), 400
-                updates[campo] = url
+                updates[campo] = obtener_embed_url(url)
             elif campo == 'categoria':
                 if data[campo] not in ('noticias', 'deportes', 'eventos'):
                     return jsonify({'error': 'Categoría inválida'}), 400
@@ -233,14 +242,12 @@ def actualizar(item_id):
 
     set_clause = ', '.join(f"{k} = %s" for k in updates)
     valores = list(updates.values()) + [item_id]
-    # Agregar actualización manual de fecha_actualizacion
     set_clause += ", fecha_actualizacion = NOW()"
 
     cur.execute(f"UPDATE transmisiones SET {set_clause} WHERE id = %s", valores)
     db.commit()
     cur.close()
 
-    # Verificar si se activó o destacó después de la actualización
     nuevo_activo = updates.get('activo', current_activo)
     nuevo_destacada = updates.get('destacada', current_destacada)
     nuevo_titulo = updates.get('titulo', current_titulo)
