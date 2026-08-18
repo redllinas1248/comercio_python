@@ -1012,16 +1012,14 @@ body {
 .youtube-live-video {
   position: relative;
   width: 100%;
-  aspect-ratio: 9 / 16;
   background: #000;
 }
 
 .youtube-live-video iframe {
-  position: absolute;
-  inset: 0;
   width: 100%;
-  height: 100%;
-  border: 0;
+  height: auto;
+  aspect-ratio: auto; /* Permite que el video defina su propio ratio */
+  min-height: 300px;
   display: block;
 }
 
