@@ -9,28 +9,26 @@ transmisiones_bp = Blueprint('transmisiones', __name__, url_prefix='/api/transmi
 
 
 def validar_url(url):
-    """Valida que la URL sea de YouTube o un ID válido."""
+    """Valida cualquier formato de YouTube (ID, URL, canal, @nombre)."""
     if not url:
         return False
     url = url.strip()
     
-    # ID de video de 11 caracteres (alfanumérico con guiones)
+    # ID de video de 11 caracteres (alfanumérico con guiones y guiones bajos)
     if re.match(r'^[a-zA-Z0-9_-]{11}$', url):
         return True
     
-    # URL de YouTube en cualquier formato
-    youtube_patterns = [
-        r'^https?://(www\.)?youtube\.com/embed/',
-        r'^https?://(www\.)?youtube\.com/watch\?v=',
-        r'^https?://youtu\.be/',
-        r'^https?://(www\.)?youtube\.com/live/',
-        r'^https?://(www\.)?youtube\.com/live_stream\?channel=',
-        r'^https?://(www\.)?youtube\.com/@',
-    ]
+    # ID de canal (empieza con UC y tiene ~24 caracteres)
+    if re.match(r'^UC[a-zA-Z0-9_-]{20,}$', url):
+        return True
     
-    for pattern in youtube_patterns:
-        if re.match(pattern, url):
-            return True
+    # Nombre de canal con @
+    if re.match(r'^@[a-zA-Z0-9_.-]+$', url):
+        return True
+    
+    # Cualquier URL que contenga youtube.com o youtu.be
+    if 'youtube.com' in url or 'youtu.be' in url:
+        return True
     
     # Cualquier URL que empiece con http/https (para otros servicios)
     if url.startswith('http://') or url.startswith('https://'):
@@ -40,23 +38,35 @@ def validar_url(url):
 
 
 def obtener_embed_url(url):
-    """Convierte cualquier formato de URL de YouTube a embed URL."""
+    """Convierte cualquier formato de entrada a URL de embed de YouTube."""
     url = url.strip()
     
     # Si es un ID de video de 11 caracteres
     if re.match(r'^[a-zA-Z0-9_-]{11}$', url):
         return f"https://www.youtube.com/embed/{url}"
     
-    # Si es una URL de canal en vivo (live_stream?channel=...)
-    if 'live_stream?channel=' in url:
-        # Si la URL ya tiene el formato correcto, devolverla
-        if url.startswith('https://www.youtube.com/embed/live_stream?channel='):
-            return url
-        # Si es un enlace directo al canal en vivo
-        channel_id = url.split('channel=')[1].split('&')[0]
-        return f"https://www.youtube.com/embed/live_stream?channel={channel_id}"
+    # Si es un ID de canal (UC...)
+    if re.match(r'^UC[a-zA-Z0-9_-]{20,}$', url):
+        return f"https://www.youtube.com/embed/live_stream?channel={url}"
     
-    # Si es una URL de YouTube normal
+    # Si es un nombre de canal con @
+    if re.match(r'^@[a-zA-Z0-9_.-]+$', url):
+        # Extraer el nombre sin el @
+        channel_name = url[1:]
+        return f"https://www.youtube.com/embed/live_stream?channel=@{channel_name}"
+    
+    # Si es una URL de canal de YouTube (formato /channel/UC...)
+    if '/channel/' in url:
+        channel_id = url.split('/channel/')[1].split('/')[0].split('?')[0]
+        if channel_id.startswith('UC'):
+            return f"https://www.youtube.com/embed/live_stream?channel={channel_id}"
+    
+    # Si es una URL de canal con @ (formato /@nombre)
+    if '/@' in url:
+        channel_name = url.split('/@')[1].split('/')[0].split('?')[0]
+        return f"https://www.youtube.com/embed/live_stream?channel=@{channel_name}"
+    
+    # Si es una URL de video normal
     if 'youtube.com/watch?v=' in url:
         video_id = url.split('v=')[1].split('&')[0]
         return f"https://www.youtube.com/embed/{video_id}"
@@ -72,12 +82,15 @@ def obtener_embed_url(url):
         video_id = url.split('live/')[1].split('?')[0]
         return f"https://www.youtube.com/embed/{video_id}"
     
-    if 'youtube.com/@' in url:
-        # Es un canal, extraer el nombre del canal
-        channel = url.split('@')[1].split('/')[0].split('?')[0]
-        return f"https://www.youtube.com/embed/live_stream?channel=@{channel}"
+    if 'live_stream?channel=' in url:
+        # Si ya tiene el formato correcto, devolverlo
+        if url.startswith('https://www.youtube.com/embed/live_stream?channel='):
+            return url
+        # Extraer el ID del canal
+        channel_id = url.split('channel=')[1].split('&')[0]
+        return f"https://www.youtube.com/embed/live_stream?channel={channel_id}"
     
-    # Si no, devolver la URL tal cual (para otros servicios)
+    # Si no se reconoce, devolver la URL tal cual
     return url
 
 
@@ -158,7 +171,7 @@ def crear():
     if categoria not in ('noticias', 'deportes', 'eventos'):
         return jsonify({'error': 'Categoría inválida'}), 400
     if not validar_url(url):
-        return jsonify({'error': 'URL inválida'}), 400
+        return jsonify({'error': 'URL inválida. Debe ser un ID de video (11 caracteres), ID de canal (UC...), @nombre, o una URL de YouTube.'}), 400
 
     # Convertir la URL a formato embed
     embed_url = obtener_embed_url(url)
@@ -244,9 +257,15 @@ def actualizar(item_id):
     valores = list(updates.values()) + [item_id]
     set_clause += ", fecha_actualizacion = NOW()"
 
-    cur.execute(f"UPDATE transmisiones SET {set_clause} WHERE id = %s", valores)
-    db.commit()
-    cur.close()
+    try:
+        cur.execute(f"UPDATE transmisiones SET {set_clause} WHERE id = %s", valores)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        current_app.logger.error(f"Error actualizando transmisión: {e}")
+        return jsonify({'error': 'Error al actualizar la transmisión'}), 500
+    finally:
+        cur.close()
 
     nuevo_activo = updates.get('activo', current_activo)
     nuevo_destacada = updates.get('destacada', current_destacada)
