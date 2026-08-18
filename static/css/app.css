@@ -2109,8 +2109,11 @@ body {
 /* ===== BOTONES DE COMPARTIR ===== */
 .share-section {
   padding: 0.75rem 1rem;
-  border-top: 1px solid var(--border);
   text-align: center;
+  background: var(--bg2);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  margin-bottom: 1rem;
 }
 .share-section p {
   font-size: 0.75rem;
@@ -2131,10 +2134,12 @@ body {
   border-radius: 8px;
   font-size: 0.8rem;
   font-weight: 600;
-  padding: 0.4rem 0.8rem;
+  padding: 0.5rem 1rem;
   cursor: pointer;
   color: #fff;
   transition: opacity 0.2s;
+  min-width: 100px;
+  justify-content: center;
 }
 .share-btn:hover {
   opacity: 0.85;
@@ -2144,4 +2149,16 @@ body {
 }
 .share-wacopy {
   background: #25d366;
+}
+
+/* Ajuste para móviles */
+@media (max-width: 480px) {
+  .share-btn {
+    min-width: 80px;
+    font-size: 0.75rem;
+    padding: 0.4rem 0.6rem;
+  }
+  .share-btns {
+    gap: 0.3rem;
+  }
 }
