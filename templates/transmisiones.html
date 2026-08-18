@@ -60,6 +60,15 @@
   <span id="push-status" style="margin-left:0.5rem; font-size:0.8rem; color:var(--muted);"></span>
 </div>
 
+<!-- ===== ANUNCIO ROTATORIO (cada 3 minutos) ===== -->
+<div id="ad-rotator" class="ad-container" style="margin: 1rem 0; min-height: 120px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+  <div class="ad-label">Anuncio</div>
+  <div id="ad-content">
+    <!-- El JS cargará el primer anuncio aquí -->
+    <p style="color:var(--muted); font-size:0.8rem;">Cargando anuncio...</p>
+  </div>
+</div>
+
 <!-- ===== LISTA DE TRANSMISIONES ===== -->
 <div id="transmisiones-wrap">
   <div id="transmisiones-lista" class="trans-lista">
@@ -237,6 +246,58 @@ async function verificarSuscripcion() {
   btn.style.display = 'inline-block';
   status.textContent = '';
 }
+
+// ============================================================
+// ===== ANUNCIOS ROTATORIOS (cada 3 minutos) =================
+// ============================================================
+
+// IDs de tus anuncios de Adsterra (reemplaza con los tuyos)
+const adUnitIds = [
+    'c8faf59902984dd8cbd09b2dbce9b59a',  // Banner 728x90
+    '3c28692570519f7a1f14c0a8fd20aa78'   // Banner 300x250
+];
+let currentAdIndex = 0;
+
+function rotateAd() {
+    const adContainer = document.getElementById('ad-content');
+    if (!adContainer) return;
+
+    const adId = adUnitIds[currentAdIndex];
+    currentAdIndex = (currentAdIndex + 1) % adUnitIds.length;
+
+    // Construir el código del anuncio
+    adContainer.innerHTML = `
+        <script>
+            atOptions = {
+                'key' : '${adId}',
+                'format' : 'iframe',
+                'height' : 250,
+                'width' : 300,
+                'params' : {}
+            };
+        <\/script>
+        <script src="https://www.highperformanceformat.com/${adId}/invoke.js"><\/script>
+    `;
+
+    // Forzar la recarga de los scripts
+    const scripts = adContainer.querySelectorAll('script');
+    scripts.forEach(oldScript => {
+        const newScript = document.createElement('script');
+        Array.from(oldScript.attributes).forEach(attr => {
+            newScript.setAttribute(attr.name, attr.value);
+        });
+        newScript.textContent = oldScript.textContent;
+        oldScript.parentNode.replaceChild(newScript, oldScript);
+    });
+}
+
+// Iniciar el ciclo de anuncios
+setTimeout(() => {
+    rotateAd(); // Carga el primer anuncio
+    setInterval(rotateAd, 180000); // Rota cada 3 minutos (180,000 ms)
+}, 1500);
+
+// ============================================================
 
 // ===== INICIO =====
 document.addEventListener('DOMContentLoaded', async function() {
