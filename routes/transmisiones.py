@@ -4,7 +4,6 @@ from security import require_api_admin
 import html
 from routes.push import enviar_notificacion_a_todos
 import re
-import traceback
 
 transmisiones_bp = Blueprint('transmisiones', __name__, url_prefix='/api/transmisiones')
 
@@ -76,7 +75,7 @@ def obtener_embed_url(url):
         return f"https://www.youtube.com/embed/{video_id}"
     
     if 'youtube.com/embed/' in url:
-        return url
+        return url  # Ya es embed
     
     if 'youtube.com/live/' in url:
         video_id = url.split('live/')[1].split('?')[0]
@@ -160,8 +159,8 @@ def crear():
     descripcion = html.escape(str(data.get('descripcion', '').strip()))[:500]
     url = str(data.get('url', '').strip())
     categoria = data.get('categoria', 'noticias')
-    destacada = 1 if data.get('destacada', False) else 0
-    activo = 1 if data.get('activo', True) else 0
+    destacada = bool(data.get('destacada', False))   # convertir a booleano
+    activo = bool(data.get('activo', True))          # convertir a booleano
     orden = int(data.get('orden', 0))
 
     if not titulo or not url:
@@ -173,44 +172,32 @@ def crear():
 
     embed_url = obtener_embed_url(url)
 
-    # Log para depuración
-    current_app.logger.info(f"Creando transmisión: {titulo}, URL original: {url}, URL embed: {embed_url}")
-
     db = get_db()
     cur = db.cursor()
 
-    try:
-        if destacada:
-            cur.execute("UPDATE transmisiones SET destacada = false")
-            db.commit()
-
-        cur.execute("""
-            INSERT INTO transmisiones (titulo, descripcion, url, categoria, destacada, activo, orden)
-            VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id
-        """, (titulo, descripcion, embed_url, categoria, destacada, activo, orden))
-        nuevo_id = cur.fetchone()[0]
+    if destacada:
+        cur.execute("UPDATE transmisiones SET destacada = false")
         db.commit()
-        cur.close()
 
-        if activo or destacada:
-            try:
-                enviar_notificacion_a_todos(
-                    title=f"📺 {titulo}",
-                    body=descripcion or "¡Transmisión en vivo!",
-                    url="/transmisiones"
-                )
-            except Exception as e:
-                current_app.logger.error(f"Error enviando notificación: {e}")
+    cur.execute("""
+        INSERT INTO transmisiones (titulo, descripcion, url, categoria, destacada, activo, orden)
+        VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id
+    """, (titulo, descripcion, embed_url, categoria, destacada, activo, orden))
+    nuevo_id = cur.fetchone()[0]
+    db.commit()
+    cur.close()
 
-        return jsonify({'mensaje': 'Transmisión creada', 'id': nuevo_id}), 201
+    if activo or destacada:
+        try:
+            enviar_notificacion_a_todos(
+                title=f"📺 {titulo}",
+                body=descripcion or "¡Transmisión en vivo!",
+                url="/transmisiones"
+            )
+        except Exception as e:
+            current_app.logger.error(f"Error enviando notificación: {e}")
 
-    except Exception as e:
-        db.rollback()
-        current_app.logger.error(f"Error creando transmisión: {e}")
-        current_app.logger.error(traceback.format_exc())
-        return jsonify({'error': f'Error interno al crear: {str(e)}'}), 500
-    finally:
-        cur.close()
+    return jsonify({'mensaje': 'Transmisión creada', 'id': nuevo_id}), 201
 
 
 @transmisiones_bp.route('/<int:item_id>', methods=['PUT'])
@@ -247,9 +234,9 @@ def actualizar(item_id):
                     return jsonify({'error': 'Categoría inválida'}), 400
                 updates[campo] = data[campo]
             elif campo == 'destacada':
-                updates[campo] = 1 if data[campo] else 0
+                updates[campo] = bool(data[campo])   # convertir a booleano
             elif campo == 'activo':
-                updates[campo] = 1 if data[campo] else 0
+                updates[campo] = bool(data[campo])   # convertir a booleano
             elif campo == 'orden':
                 updates[campo] = int(data[campo] or 0)
 
@@ -258,42 +245,39 @@ def actualizar(item_id):
 
     cur = db.cursor()
 
+    if updates.get('destacada') == True:
+        cur.execute("UPDATE transmisiones SET destacada = false WHERE id != %s", (item_id,))
+        db.commit()
+
+    set_clause = ', '.join(f"{k} = %s" for k in updates)
+    valores = list(updates.values()) + [item_id]
+    set_clause += ", fecha_actualizacion = NOW()"
+
     try:
-        if updates.get('destacada') == 1:
-            cur.execute("UPDATE transmisiones SET destacada = false WHERE id != %s", (item_id,))
-            db.commit()
-
-        set_clause = ', '.join(f"{k} = %s" for k in updates)
-        valores = list(updates.values()) + [item_id]
-        set_clause += ", fecha_actualizacion = NOW()"
-
         cur.execute(f"UPDATE transmisiones SET {set_clause} WHERE id = %s", valores)
         db.commit()
-        cur.close()
-
-        nuevo_activo = updates.get('activo', current_activo)
-        nuevo_destacada = updates.get('destacada', current_destacada)
-        nuevo_titulo = updates.get('titulo', current_titulo)
-
-        if (nuevo_activo and not current_activo) or (nuevo_destacada and not current_destacada):
-            try:
-                enviar_notificacion_a_todos(
-                    title=f"📺 {nuevo_titulo}",
-                    body=data.get('descripcion', '¡Transmisión en vivo!'),
-                    url="/transmisiones"
-                )
-            except Exception as e:
-                current_app.logger.error(f"Error enviando notificación: {e}")
-
-        return jsonify({'mensaje': 'Transmisión actualizada'})
-
     except Exception as e:
         db.rollback()
         current_app.logger.error(f"Error actualizando transmisión: {e}")
-        current_app.logger.error(traceback.format_exc())
-        return jsonify({'error': f'Error interno al actualizar: {str(e)}'}), 500
+        return jsonify({'error': 'Error al actualizar la transmisión'}), 500
     finally:
         cur.close()
+
+    nuevo_activo = updates.get('activo', current_activo)
+    nuevo_destacada = updates.get('destacada', current_destacada)
+    nuevo_titulo = updates.get('titulo', current_titulo)
+
+    if (nuevo_activo and not current_activo) or (nuevo_destacada and not current_destacada):
+        try:
+            enviar_notificacion_a_todos(
+                title=f"📺 {nuevo_titulo}",
+                body=data.get('descripcion', '¡Transmisión en vivo!'),
+                url="/transmisiones"
+            )
+        except Exception as e:
+            current_app.logger.error(f"Error enviando notificación: {e}")
+
+    return jsonify({'mensaje': 'Transmisión actualizada'})
 
 
 @transmisiones_bp.route('/<int:item_id>', methods=['DELETE'])
