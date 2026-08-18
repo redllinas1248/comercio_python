@@ -1009,18 +1009,27 @@ body {
   color: var(--muted);
 }
 
+/* ===== REPRODUCTOR SIN BARRAS NEGRAS ===== */
 .youtube-live-video {
   position: relative;
   width: 100%;
   background: #000;
+  /* Ya no forzamos aspect-ratio fijo */
 }
 
 .youtube-live-video iframe {
   width: 100%;
   height: auto;
-  aspect-ratio: auto; /* Permite que el video defina su propio ratio */
-  min-height: 300px;
+  aspect-ratio: auto; /* Deja que YouTube decida el ratio */
+  min-height: 300px;  /* Altura mínima para que no se vea muy pequeño */
   display: block;
+  border: 0;
+}
+
+/* Opcional: si quieres que el video ocupe todo el ancho sin bordes negros,
+   puedes agregar un fondo que se adapte al contenido */
+.youtube-live-video iframe {
+  background: #000;
 }
 
 /* Servicios — azul */
