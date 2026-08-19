@@ -64,9 +64,9 @@ def crear():
     row = cur.fetchone()
     if row and row[0] != telefono:
         cur.execute(
-            "INSERT INTO notificaciones (telefono_destino, mensaje) VALUES (%s, %s)",
-            (row[0], '💬 Comentaron en tu publicación')
-        )
+    "INSERT INTO notificaciones (telefono_destino, mensaje) VALUES (%s, %s)",
+    (row[0], f'💬 Comentaron en tu publicación #{pub_id}')
+)
         db.commit()
 
     cur.close()

@@ -24,7 +24,10 @@ async function cargarNotificaciones() {
       return;
     }
     wrap.innerHTML = `<div class="notif-list">${notifs.map(n => `
-      <div class="notif-item ${n.leida ? '' : 'no-leida'}" id="notif-${n.id}">
+      <div class="notif-item ${n.leida ? '' : 'no-leida'}" 
+     id="notif-${n.id}" 
+     data-pub-id="${extraerIdPublicacion(n.mensaje)}"
+     onclick="irAPublicacion(this.dataset.pubId)">
         <div class="notif-dot ${n.leida ? '' : 'activo'}"></div>
         <div class="notif-body">
           <p class="notif-msg">${formatNotif(n.mensaje)}</p>
@@ -84,6 +87,23 @@ function formatNotif(msg) {
   return '🔔 ' + msg;
 }
 
+function extraerIdPublicacion(mensaje) {
+  const match = mensaje.match(/#(\d+)/);
+  return match ? match[1] : null;
+}
+
+function irAPublicacion(pubId) {
+  if (pubId) {
+    location.href = `/publicacion/${pubId}`;
+  } else {
+    // Si no tiene ID, al menos marcar como leída sin redirigir
+    toast('Notificación sin enlace a publicación');
+  }
+}
+
 document.addEventListener('DOMContentLoaded', cargarNotificaciones);
+
+
+
 </script>
 {% endblock %}

@@ -70,9 +70,9 @@ def reaccionar():
         if row and row[0] != telefono:
             emojis = {'like': '👍', 'love': '❤️', 'angry': '😠', 'wow': '😮', 'sad': '😢'}
             cur.execute(
-                "INSERT INTO notificaciones (telefono_destino, mensaje) VALUES (%s, %s)",
-                (row[0], f"{emojis.get(reaccion, '👍')} Le dieron {reaccion} a tu publicación")
-            )
+    "INSERT INTO notificaciones (telefono_destino, mensaje) VALUES (%s, %s)",
+    (row[0], f"{emojis.get(reaccion, '👍')} Le dieron {reaccion} a tu publicación #{pub_id}")
+)
             db.commit()
 
         cur.close()
