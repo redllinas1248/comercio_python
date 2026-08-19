@@ -67,7 +67,7 @@ def security_headers(response):
     response.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
     response.headers.setdefault('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
     
-    # CSP actualizado para permitir Adsterra y todas sus redes
+    # CSP simplificada para pruebas (permite todo desde los dominios de Adsterra)
     response.headers['Content-Security-Policy'] = (
         "default-src 'self'; "
         "img-src 'self' data: https://res.cloudinary.com https://*.effectivecpmnetwork.com https://*.highperformanceformat.com; "
@@ -76,9 +76,7 @@ def security_headers(response):
         "frame-src https://www.youtube.com https://*.effectivecpmnetwork.com https://*.highperformanceformat.com; "
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
         "font-src 'self' https://fonts.gstatic.com; "
-        "connect-src 'self' https://*.effectivecpmnetwork.com https://*.highperformanceformat.com; "
-        "child-src 'self' https://*.effectivecpmnetwork.com; "
-        "frame-ancestors 'self';"
+        "connect-src 'self' https://*.effectivecpmnetwork.com https://*.highperformanceformat.com;"
     )
     
     if request.is_secure:
