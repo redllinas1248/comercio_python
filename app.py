@@ -29,14 +29,15 @@ def not_found(e):
         return '', 204
     return jsonify({'error': 'No encontrado'}), 404
 
-# Cerrar conexión a la base de datos
+# Cerrar conexión a la base de datos al final de la solicitud
 @app.teardown_appcontext
 def close_db(error):
+    """Cierra la conexión a la base de datos al finalizar la solicitud."""
     db = g.pop('db', None)
     if db is not None:
         db.close()
 
-# Verificar variables de entorno
+# Verificar variables de entorno obligatorias
 _REQUIRED_SECRETS = (
     'SECRET_KEY',
     'DATABASE_URL',
@@ -66,19 +67,16 @@ def security_headers(response):
     response.headers.setdefault('X-Frame-Options', 'SAMEORIGIN')
     response.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
     response.headers.setdefault('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
-    
-    # CSP simplificada para pruebas (permite todo desde los dominios de Adsterra)
     response.headers['Content-Security-Policy'] = (
         "default-src 'self'; "
-        "img-src 'self' data: https://res.cloudinary.com https://*.effectivecpmnetwork.com https://*.highperformanceformat.com; "
+        "img-src 'self' data: https://res.cloudinary.com; "
         "media-src 'self' https://res.cloudinary.com; "
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.youtube.com https://*.effectivecpmnetwork.com https://*.highperformanceformat.com; "
-        "frame-src https://www.youtube.com https://*.effectivecpmnetwork.com https://*.highperformanceformat.com; "
+        "script-src 'self' 'unsafe-inline' https://www.youtube.com; "
+        "frame-src https://www.youtube.com; "
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
         "font-src 'self' https://fonts.gstatic.com; "
-        "connect-src 'self' https://*.effectivecpmnetwork.com https://*.highperformanceformat.com;"
+        "connect-src 'self';"
     )
-    
     if request.is_secure:
         response.headers.setdefault('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
     return response
@@ -86,7 +84,7 @@ def security_headers(response):
 init_db(app)
 init_cloudinary(app)
 
-# Registrar Blueprints
+# ===== REGISTRAR BLUEPRINTS =====
 from routes.auth import auth_bp
 from routes.publicaciones import pub_bp
 from routes.comentarios import com_bp
@@ -107,7 +105,7 @@ app.register_blueprint(dir_bp)
 app.register_blueprint(views_bp)
 app.register_blueprint(transmisiones_bp)
 
-# Scheduler limpieza automática
+# ===== SCHEDULER: LIMPIEZA AUTOMÁTICA =====
 def limpieza_programada():
     with app.app_context():
         try:
