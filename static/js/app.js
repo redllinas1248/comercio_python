@@ -565,3 +565,63 @@ function insertarAnunciosEnFeed() {
     cards[8].after(adContainer2);
   }
 }
+// ===== Insertar anuncios en el feed =====
+const _cargarPublicacionesOriginal = cargarPublicaciones;
+cargarPublicaciones = async function() {
+  await _cargarPublicacionesOriginal();
+  insertarAnunciosEnFeed();
+};
+
+function insertarAnunciosEnFeed() {
+  const feed = document.getElementById('feed');
+  if (!feed) return;
+  const cards = feed.querySelectorAll('.card');
+  if (cards.length < 4) return;
+
+  // Eliminar anuncios existentes para no duplicar
+  feed.querySelectorAll('.ad-container--feed').forEach(el => el.remove());
+
+  // Insertar banner 300x250 después de la 4ta publicación
+  if (cards.length >= 4) {
+    const adContainer = document.createElement('div');
+    adContainer.className = 'ad-container ad-container--feed';
+    adContainer.style.margin = '0.75rem 0';
+    adContainer.style.minHeight = '260px';
+    adContainer.innerHTML = `
+      <div class="ad-label">Anuncio</div>
+      <script>
+        atOptions = {
+          'key' : '3c28692570519f7a1f14c0a8fd20aa78',
+          'format' : 'iframe',
+          'height' : 250,
+          'width' : 300,
+          'params' : {}
+        };
+      <\/script>
+      <script src="https://www.highperformanceformat.com/3c28692570519f7a1f14c0a8fd20aa78/invoke.js"><\/script>
+    `;
+    cards[3].after(adContainer);
+  }
+
+  // Insertar otro banner después de la 8va publicación (si existe)
+  if (cards.length >= 9) {
+    const adContainer2 = document.createElement('div');
+    adContainer2.className = 'ad-container ad-container--feed';
+    adContainer2.style.margin = '0.75rem 0';
+    adContainer2.style.minHeight = '260px';
+    adContainer2.innerHTML = `
+      <div class="ad-label">Anuncio</div>
+      <script>
+        atOptions = {
+          'key' : '3c28692570519f7a1f14c0a8fd20aa78',
+          'format' : 'iframe',
+          'height' : 250,
+          'width' : 300,
+          'params' : {}
+        };
+      <\/script>
+      <script src="https://www.highperformanceformat.com/3c28692570519f7a1f14c0a8fd20aa78/invoke.js"><\/script>
+    `;
+    cards[8].after(adContainer2);
+  }
+}

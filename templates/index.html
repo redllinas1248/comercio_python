@@ -20,24 +20,20 @@
 <!-- Banner visitante -->
 <div class="visitor-banner" id="visitor-banner" style="display:none">
   <div class="visitor-banner-txt">
-    👋 Estás viendo en modo invitado.
-    <a href="/login" class="visitor-link">Inicia sesión</a> o
-    <a href="/login" class="visitor-link">regístrate</a> para interactuar.
+    👋 Estás viendo en modo invitado. <a href="/login" class="visitor-link">Inicia sesión</a> o <a href="/login" class="visitor-link">regístrate</a> para interactuar.
   </div>
 </div>
 
-<!-- ===== CARRUSEL DE DESTACADAS ===== -->
+<!-- ===== CARRUSEL DESTACADAS ===== -->
 <div id="destacadas-wrap" style="margin-bottom:1rem;">
   <div class="destacadas-header">
     <span class="destacadas-icon">⭐</span>
     <span class="destacadas-titulo">Publicaciones destacadas</span>
   </div>
-  <div class="destacadas-slider" id="destacadas-slider">
-    <!-- El JS llenará esto -->
-  </div>
+  <div class="destacadas-slider" id="destacadas-slider"></div>
 </div>
 
-<!-- ===== CONTADORES DE ESTADÍSTICAS ===== -->
+<!-- ===== ESTADÍSTICAS (ocultas por ahora) ===== -->
 <div class="stats-bar" id="stats-bar" style="display: none;">
   <div class="stat-item">
     <span class="stat-icon">👥</span>
@@ -56,7 +52,7 @@
   </div>
 </div>
 
-<!-- ===== WIDGET DE PUNTOS ===== -->
+<!-- ===== PUNTOS ===== -->
 <div id="puntos-widget" style="display:none; margin-bottom:1rem;">
   <div class="puntos-section" style="border-radius:var(--radius);padding:1rem;background:var(--bg2);border:1px solid var(--border);">
     <div class="puntos-wrap">
@@ -66,12 +62,8 @@
       </div>
       <div class="puntos-info">
         <div class="puntos-detalle" id="pw-pubs-hoy">— / 2 publicaciones hoy</div>
-        <div class="puntos-barra-wrap">
-          <div class="puntos-barra" id="pw-barra" style="width:0%"></div>
-        </div>
-        <button class="puntos-ayuda" onclick="toggleAyudaPuntosWidget()">
-          ¿Cómo funcionan los puntos? ℹ️
-        </button>
+        <div class="puntos-barra-wrap"><div class="puntos-barra" id="pw-barra" style="width:0%"></div></div>
+        <button class="puntos-ayuda" onclick="toggleAyudaPuntosWidget()">¿Cómo funcionan los puntos? ℹ️</button>
       </div>
     </div>
     <div class="puntos-explicacion" id="pw-exp" style="display:none;margin-top:.75rem;background:var(--bg3);padding:.85rem;border-radius:10px;">
@@ -83,7 +75,7 @@
   </div>
 </div>
 
-<!-- ===== BOTONES DE SECCIONES ===== -->
+<!-- ===== BOTONES SERVICIOS/EMERGENCIAS ===== -->
 <div class="secciones-btns">
   <a href="/servicios" class="seccion-btn seccion-servicios">
     <span class="seccion-ico">🔧</span>
@@ -107,20 +99,17 @@
   </a>
 </div>
 
-<!-- ===== FEED DE PUBLICACIONES ===== -->
+<!-- ===== FEED ===== -->
 <div id="feed" class="feed"></div>
 
-<!-- ===== BANNER 300x250 (dentro del feed, se inserta desde JS) ===== -->
-<!-- El script de app.js insertará este banner automáticamente -->
-
 <!-- ===== NATIVE BANNER (al final del feed) ===== -->
-<div class="ad-container" id="ad-bottom" style="margin-top:1.5rem;">
+<div class="ad-container" id="ad-bottom" style="margin-top:1.5rem; min-height:250px;">
   <div class="ad-label">Anuncio</div>
   <script async="async" data-cfasync="false" src="https://pl30899860.effectivecpmnetwork.com/2381fde58e67195cb918ab6a1548b1e4/invoke.js"></script>
   <div id="container-2381fde58e67195cb918ab6a1548b1e4"></div>
 </div>
 
-<!-- ===== SMARTLINK (footer) ===== -->
+<!-- ===== SMARTLINK ===== -->
 <div style="text-align:center; margin-top:1.5rem; padding:1rem 0; border-top:1px solid var(--border);">
   <a href="https://www.effectivecpmnetwork.com/p78n4512?key=7aae79a74874dcc277ccad3bb98d4cd5" target="_blank" style="color:var(--muted); font-size:0.7rem; text-decoration:none; opacity:0.5;">
     Anuncio
@@ -163,15 +152,13 @@
             <rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/>
             <path d="M21 15l-5-5L5 21"/>
           </svg>
-          <input type="file" id="nuevo-imgs" accept="image/*" multiple style="display:none"
-                 onchange="previewMedia(this, 'imagen')"/>
+          <input type="file" id="nuevo-imgs" accept="image/*" multiple style="display:none" onchange="previewMedia(this, 'imagen')"/>
         </label>
         <label class="btn-icon" title="Agregar video">
           <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
             <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>
           </svg>
-          <input type="file" id="nuevo-vid" accept="video/mp4,video/mov,video/webm,video/*" style="display:none"
-                 onchange="previewMedia(this, 'video')"/>
+          <input type="file" id="nuevo-vid" accept="video/mp4,video/mov,video/webm,video/*" style="display:none" onchange="previewMedia(this, 'video')"/>
         </label>
       </div>
       <button class="btn-pub" id="btn-pub" onclick="publicar()">
@@ -183,13 +170,12 @@
 </div>
 
 <script>
-// Función para alternar ayuda de puntos en el widget
 function toggleAyudaPuntosWidget() {
   const el = document.getElementById('pw-exp');
   el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
 
-// ===== Cargar destacadas (con manejo de errores) =====
+// ===== Cargar destacadas =====
 async function cargarDestacadas() {
   const slider = document.getElementById('destacadas-slider');
   if (!slider) return;
@@ -293,9 +279,6 @@ async function cargarPuntosWidget() {
 // ===== Inicialización =====
 document.addEventListener('DOMContentLoaded', async function() {
   await verificarSesion();
-  
-  // Asegurar que se carguen las estadísticas y destacadas después de un pequeño delay
-  // para dar tiempo a que los scripts de Adsterra terminen de cargar
   setTimeout(async () => {
     await cargarEstadisticas();
     await cargarDestacadas();
@@ -306,8 +289,6 @@ document.addEventListener('DOMContentLoaded', async function() {
       if (widget) widget.style.display = 'none';
     }
   }, 100);
-  
-  // Cargar feed (no depende de Adsterra)
   cargarPublicaciones();
 });
 </script>

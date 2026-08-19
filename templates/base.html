@@ -17,7 +17,7 @@
     .ad-container {
       text-align: center;
       margin: 1rem 0;
-      min-height: 90px;
+      min-height: 100px;
       background: var(--bg2);
       border-radius: var(--radius);
       display: flex;
@@ -40,9 +40,13 @@
       letter-spacing: 0.05em;
       margin-bottom: 0.25rem;
     }
-    /* Corrección para que los anuncios no rompan el layout */
     .ad-container > * {
       max-width: 100%;
+    }
+    /* Asegurar que los anuncios tengan espacio suficiente */
+    .ad-container .adsbyadsterra {
+      min-width: 300px;
+      min-height: 250px;
     }
   </style>
 </head>
@@ -110,7 +114,7 @@
 
   <!-- ===== BANNER 728x90 (debajo del navbar) ===== -->
   <div class="container" style="max-width:640px; margin:0 auto; padding:0 1rem;">
-    <div class="ad-container" id="ad-top">
+    <div class="ad-container" id="ad-top" style="min-height:100px;">
       <div class="ad-label">Anuncio</div>
       <!-- BANNER 728x90 -->
       <script>
@@ -137,14 +141,11 @@
     <script src="https://pl30899863.effectivecpmnetwork.com/b9/00/d4/b900d4c236d22691cfa4d444601c48dd.js"></script>
   </div>
 
-  <!-- ===== SCRIPTS DE ADSTERRA (al final del body para no bloquear) ===== -->
-  <!-- Popunder (se activa al hacer clic) -->
+  <!-- ===== POPUNDER ===== -->
   <script src="https://pl30899859.effectivecpmnetwork.com/6a/8c/31/6a8c3191b0f79bf85b894e5db8313e9a.js" async></script>
 
-  <!-- ===== SCRIPT PRINCIPAL DE LA APP ===== -->
   <script src="/static/js/app.js"></script>
 
-  <!-- Service Worker -->
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/static/sw.js')
