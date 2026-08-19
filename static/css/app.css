@@ -1987,3 +1987,25 @@ body {
 .notif-item {
   cursor: pointer;
 }
+/* ===== ANUNCIOS ===== */
+.ad-container {
+  text-align: center;
+  margin: 0.5rem 0;
+  min-height: 100px;
+  background: var(--bg2);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  padding: 0.5rem;
+}
+.ad-container iframe,
+.ad-container img {
+  max-width: 100%;
+  border: 0;
+}
+.ad-label {
+  font-size: 0.6rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}

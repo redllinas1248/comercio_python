@@ -108,23 +108,23 @@
     </div>
   </nav>
 
-  <!-- ===== BANNER 728x90 (debajo del navbar) ===== -->
-  <div class="container" style="max-width:640px; margin:0 auto; padding:0 1rem;">
-    <div class="ad-container" id="ad-top">
-      <div class="ad-label">Anuncio</div>
-      <!-- BANNER 728x90 -->
-      <script>
-        atOptions = {
-          'key' : 'c8faf59902984dd8cbd09b2dbce9b59a',
-          'format' : 'iframe',
-          'height' : 90,
-          'width' : 728,
-          'params' : {}
-        };
-      </script>
-      <script src="https://www.highperformanceformat.com/c8faf59902984dd8cbd09b2dbce9b59a/invoke.js"></script>
-    </div>
+<!-- ===== BANNER 728x90 (debajo del navbar) ===== -->
+<div class="container" style="max-width:640px; margin:0 auto; padding:0 1rem;">
+  <div class="ad-container" id="ad-top" style="min-height:100px; text-align:center; background:var(--bg2); border-radius:var(--radius); border:1px solid var(--border); padding:0.5rem; margin:0.5rem 0;">
+    <div class="ad-label" style="font-size:0.6rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Anuncio</div>
+    <!-- BANNER 728x90 -->
+    <script>
+      atOptions = {
+        'key' : 'c8faf59902984dd8cbd09b2dbce9b59a',
+        'format' : 'iframe',
+        'height' : 90,
+        'width' : 728,
+        'params' : {}
+      };
+    </script>
+    <script src="https://www.highperformanceformat.com/c8faf59902984dd8cbd09b2dbce9b59a/invoke.js"></script>
   </div>
+</div>
 
   <main id="app" class="container">
     {% block content %}{% endblock %}
