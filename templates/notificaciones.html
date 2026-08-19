@@ -25,15 +25,16 @@ async function cargarNotificaciones() {
     }
     wrap.innerHTML = `<div class="notif-list">${notifs.map(n => `
       <div class="notif-item ${n.leida ? '' : 'no-leida'}" 
-     id="notif-${n.id}" 
-     data-pub-id="${extraerIdPublicacion(n.mensaje)}"
-     onclick="irAPublicacion(this.dataset.pubId)">
+           id="notif-${n.id}" 
+           data-id="${n.id}"
+           data-mensaje="${escapeHtml(n.mensaje)}"
+           onclick="handleNotifClick('${escapeHtml(n.mensaje)}')">
         <div class="notif-dot ${n.leida ? '' : 'activo'}"></div>
         <div class="notif-body">
           <p class="notif-msg">${formatNotif(n.mensaje)}</p>
           <p class="notif-fecha">${timeAgo(n.fecha)}</p>
         </div>
-        <button class="notif-del-btn" onclick="eliminarNotif(${n.id})" title="Eliminar">
+        <button class="notif-del-btn" onclick="event.stopPropagation();eliminarNotif(${n.id})" title="Eliminar">
           <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
           </svg>
@@ -45,11 +46,32 @@ async function cargarNotificaciones() {
   }
 }
 
+// ===== MANEJAR CLICK EN NOTIFICACIÓN =====
+function handleNotifClick(mensaje) {
+  // Extraer ID de publicación si existe (formato: "...#123")
+  const pubMatch = mensaje.match(/#(\d+)/);
+  // Extraer nombre de usuario si es mensaje (formato: "Nuevo mensaje de nombre")
+  const userMatch = mensaje.match(/Nuevo mensaje de (.+)/);
+  
+  if (pubMatch) {
+    // Notificación de like o comentario → ir a publicación
+    location.href = `/publicacion/${pubMatch[1]}`;
+  } else if (userMatch) {
+    // Notificación de mensaje → ir a mensajes con ese usuario
+    // El nombre puede tener caracteres especiales, lo codificamos
+    const nombreUsuario = userMatch[1].trim();
+    location.href = `/mensajes?con=${encodeURIComponent(nombreUsuario)}`;
+  } else {
+    // Otras notificaciones (ej: "Bienvenido") → solo marcar como leída
+    toast('Notificación sin enlace específico');
+  }
+}
+
+// ===== FUNCIONES EXISTENTES =====
 async function eliminarNotif(id) {
   try {
     await api(`/api/notificaciones/${id}`, 'DELETE');
     document.getElementById(`notif-${id}`)?.remove();
-    // Si no quedan notificaciones mostrar empty
     const lista = document.querySelector('.notif-list');
     if (lista && !lista.children.length) cargarNotificaciones();
   } catch(e) { toast(e.message); }
@@ -79,32 +101,13 @@ async function marcarLeidas() {
 function formatNotif(msg) {
   if (!msg) return '';
   msg = escapeHtml(msg);
-  msg = msg.replace(/^\?+\s*/, '');
-  if (msg.includes('mensaje'))                          return '💬 ' + msg;
-  if (msg.includes('like') || msg.includes('dieron'))   return '❤️ ' + msg;
+  if (msg.includes('mensaje')) return '💬 ' + msg;
+  if (msg.includes('like') || msg.includes('dieron')) return '❤️ ' + msg;
   if (msg.includes('Comentaron') || msg.includes('comentario')) return '💬 ' + msg;
-  if (msg.includes('publicaci'))                        return '📢 ' + msg;
+  if (msg.includes('publicaci')) return '📢 ' + msg;
   return '🔔 ' + msg;
 }
 
-function extraerIdPublicacion(mensaje) {
-  const match = mensaje.match(/#(\d+)/);
-  return match ? match[1] : null;
-}
-
-function irAPublicacion(pubId) {
-  if (pubId) {
-    location.href = `/publicacion/${pubId}`;
-  } else {
-    // Si no tiene ID, al menos marcar como leída sin redirigir
-    toast('Notificación sin enlace a publicación');
-  }
-}
-
-
 document.addEventListener('DOMContentLoaded', cargarNotificaciones);
-
-
-
 </script>
 {% endblock %}
