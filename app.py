@@ -67,16 +67,17 @@ def security_headers(response):
     response.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
     response.headers.setdefault('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
     
-    # CSP completa para Adsterra
+    # CSP muy permisiva para permitir cualquier recurso de Adsterra
+    # Permitimos cualquier origen para scripts, frames, imágenes, etc.
     response.headers['Content-Security-Policy'] = (
         "default-src 'self'; "
-        "img-src 'self' data: https://res.cloudinary.com https://*.effectivecpmnetwork.com https://*.highperformanceformat.com; "
-        "media-src 'self' https://res.cloudinary.com; "
-        "script-src 'self' 'unsafe-inline' https://www.youtube.com https://*.effectivecpmnetwork.com https://*.highperformanceformat.com; "
-        "frame-src https://www.youtube.com https://*.effectivecpmnetwork.com https://*.highperformanceformat.com; "
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-        "font-src 'self' https://fonts.gstatic.com; "
-        "connect-src 'self' https://*.effectivecpmnetwork.com https://*.highperformanceformat.com; "
+        "script-src * 'unsafe-inline' 'unsafe-eval' data: blob:; "
+        "frame-src *; "
+        "img-src * data: blob:; "
+        "style-src * 'unsafe-inline'; "
+        "font-src * data:; "
+        "connect-src *; "
+        "media-src *; "
         "frame-ancestors 'self';"
     )
     
