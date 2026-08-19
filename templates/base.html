@@ -40,7 +40,6 @@
       letter-spacing: 0.05em;
       margin-bottom: 0.25rem;
     }
-    /* Corrección para que los anuncios no rompan el layout */
     .ad-container > * {
       max-width: 100%;
     }
@@ -108,23 +107,23 @@
     </div>
   </nav>
 
-<!-- ===== BANNER 728x90 (debajo del navbar) ===== -->
-<div class="container" style="max-width:640px; margin:0 auto; padding:0 1rem;">
-  <div class="ad-container" id="ad-top" style="min-height:100px; text-align:center; background:var(--bg2); border-radius:var(--radius); border:1px solid var(--border); padding:0.5rem; margin:0.5rem 0;">
-    <div class="ad-label" style="font-size:0.6rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Anuncio</div>
-    <!-- BANNER 728x90 -->
-    <script>
-      atOptions = {
-        'key' : 'c8faf59902984dd8cbd09b2dbce9b59a',
-        'format' : 'iframe',
-        'height' : 90,
-        'width' : 728,
-        'params' : {}
-      };
-    </script>
-    <script src="https://www.highperformanceformat.com/c8faf59902984dd8cbd09b2dbce9b59a/invoke.js"></script>
+  <!-- ===== BANNER 728x90 (debajo del navbar) ===== -->
+  <div class="container" style="max-width:640px; margin:0 auto; padding:0 1rem;">
+    <div class="ad-container" id="ad-top" style="min-height:100px; text-align:center; background:var(--bg2); border-radius:var(--radius); border:1px solid var(--border); padding:0.5rem; margin:0.5rem 0;">
+      <div class="ad-label" style="font-size:0.6rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Anuncio</div>
+      <!-- BANNER 728x90 -->
+      <script>
+        atOptions = {
+          'key' : 'c8faf59902984dd8cbd09b2dbce9b59a',
+          'format' : 'iframe',
+          'height' : 90,
+          'width' : 728,
+          'params' : {}
+        };
+      </script>
+      <script src="https://www.highperformanceformat.com/c8faf59902984dd8cbd09b2dbce9b59a/invoke.js"></script>
+    </div>
   </div>
-</div>
 
   <main id="app" class="container">
     {% block content %}{% endblock %}
@@ -141,9 +140,6 @@
   <!-- Popunder (se activa al hacer clic) -->
   <script src="https://pl30899859.effectivecpmnetwork.com/6a/8c/31/6a8c3191b0f79bf85b894e5db8313e9a.js" async></script>
 
-  <!-- ===== NATIVE BANNER SCRIPT (al final del body) ===== -->
-<script async="async" data-cfasync="false" src="https://pl30899860.effectivecpmnetwork.com/2381fde58e67195cb918ab6a1548b1e4/invoke.js"></script>
-
   <!-- ===== SCRIPT PRINCIPAL DE LA APP ===== -->
   <script src="/static/js/app.js"></script>
 
@@ -155,6 +151,6 @@
         .catch(err => console.error('Error SW:', err));
     }
   </script>
-  
+
 </body>
 </html>

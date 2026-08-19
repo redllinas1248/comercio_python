@@ -119,6 +119,9 @@
   <div id="container-2381fde58e67195cb918ab6a1548b1e4" style="width:100%; min-height:250px;"></div>
 </div>
 
+<!-- ===== SCRIPT DEL NATIVE BANNER (justo después del contenedor) ===== -->
+<script async="async" data-cfasync="false" src="https://pl30899860.effectivecpmnetwork.com/2381fde58e67195cb918ab6a1548b1e4/invoke.js"></script>
+
 <!-- ===== SMARTLINK (footer) ===== -->
 <div style="text-align:center; margin-top:1.5rem; padding:1rem 0; border-top:1px solid var(--border);">
   <a href="https://www.effectivecpmnetwork.com/p78n4512?key=7aae79a74874dcc277ccad3bb98d4cd5" target="_blank" style="color:var(--muted); font-size:0.7rem; text-decoration:none; opacity:0.5;">
@@ -292,7 +295,7 @@ async function cargarPuntosWidget() {
 // ===== Inicialización =====
 document.addEventListener('DOMContentLoaded', async function() {
   await verificarSesion();
-  
+
   // Asegurar que se carguen las estadísticas y destacadas después de un pequeño delay
   // para dar tiempo a que los scripts de Adsterra terminen de cargar
   setTimeout(async () => {
@@ -305,7 +308,7 @@ document.addEventListener('DOMContentLoaded', async function() {
       if (widget) widget.style.display = 'none';
     }
   }, 100);
-  
+
   // Cargar feed (no depende de Adsterra)
   cargarPublicaciones();
 });
