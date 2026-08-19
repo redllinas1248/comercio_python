@@ -1984,3 +1984,6 @@ body {
     gap: 0.3rem;
   }
 }
+.notif-item {
+  cursor: pointer;
+}
