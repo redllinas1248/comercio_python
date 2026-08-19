@@ -36,7 +36,7 @@ async function cargarPerfilUsuario() {
           </div>
         </div>
         <div class="pu-actions">
-          <button class="pu-btn-msg" onclick="iniciarChat(encodeJsValue(u.telefono))">
+          <button class="pu-btn-msg" onclick="iniciarChat('${encodeJsValue(u.telefono)}')">
             <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
             </svg>
@@ -56,10 +56,19 @@ async function cargarPerfilUsuario() {
   }
 }
 
+// ===== FUNCIÓN PARA INICIAR CHAT (corregida) =====
 function iniciarChat(encodedTelefono) {
-  location.href = `/mensajes?con=${encodedTelefono}`;
+  // Decodificar por si viene encoded
+  const telefono = decodeJsValue(encodedTelefono);
+  if (!telefono) {
+    toast('⚠️ No se pudo obtener el contacto');
+    return;
+  }
+  // Redirigir a mensajes con el parámetro 'con'
+  location.href = `/mensajes?con=${encodeURIComponent(telefono)}`;
 }
 
+// ===== INICIO =====
 document.addEventListener('DOMContentLoaded', cargarPerfilUsuario);
 </script>
 {% endblock %}
