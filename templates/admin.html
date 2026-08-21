@@ -23,64 +23,73 @@
     <div id="users-wrap"></div>
   </div>
 
-  <!-- DIRECTORIO -->
-   <div class="p-field" style="grid-column:span 4">
-  <label>Foto (URL)</label>
-  <input id="df-foto" type="text" placeholder="https://ejemplo.com/foto.jpg"/>
-</div>
-<div class="p-field" style="grid-column:span 4">
-  <label>Descripción corta</label>
-  <textarea id="df-descripcion" rows="2" placeholder="Breve descripción del servicio..." style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.9rem;padding:.65rem .85rem;outline:none;width:100%;resize:vertical;"></textarea>
-</div>
+  <!-- ===== DIRECTORIO (con foto tipo file) ===== -->
   <div id="admin-directorio" style="display:none">
     <div class="dir-admin-form" id="dir-form">
       <h3 class="p-section-title" style="margin-bottom:.75rem">Agregar entrada</h3>
-      <div class="dir-form-grid">
-        <div class="p-field">
-          <label>Ícono</label>
-          <input id="df-icono" type="text" value="📍" placeholder="Emoji" maxlength="4" style="width:70px"/>
+      <form id="dir-form-elements" enctype="multipart/form-data">
+        <div class="dir-form-grid">
+          <div class="p-field">
+            <label>Ícono</label>
+            <input id="df-icono" type="text" value="📍" placeholder="Emoji" maxlength="4" style="width:70px"/>
+          </div>
+          <div class="p-field" style="grid-column:span 2">
+            <label>Categoría</label>
+            <input id="df-cat" type="text" placeholder="Ej: Farmacias, Emergencias, Hospitales..." list="cats-list"/>
+            <datalist id="cats-list"></datalist>
+          </div>
+          <div class="p-field" style="grid-column:span 1">
+            <label>Tipo</label>
+            <select id="df-tipo" class="select-field" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:.65rem .85rem;outline:none;">
+              <option value="servicios">🔧 Servicios</option>
+              <option value="emergencias">🚨 Emergencias</option>
+              <option value="general">📌 General</option>
+            </select>
+          </div>
+          <div class="p-field" style="grid-column:span 3">
+            <label>Nombre</label>
+            <input id="df-nombre" type="text" placeholder="Ej: Farmacia Similar"/>
+          </div>
+          <div class="p-field" style="grid-column:span 2">
+            <label>Teléfono</label>
+            <input id="df-tel" type="tel" placeholder="Ej: 322 123 4567"/>
+          </div>
+          <div class="p-field" style="grid-column:span 2">
+            <label>Horario</label>
+            <input id="df-horario" type="text" placeholder="Ej: 8:00am - 10:00pm"/>
+          </div>
+          <div class="p-field" style="grid-column:span 4">
+            <label>Dirección (opcional)</label>
+            <input id="df-dir" type="text" placeholder="Ej: Calle Hidalgo 45"/>
+          </div>
+
+          <!-- ===== CAMPO FOTO (input file) ===== -->
+          <div class="p-field" style="grid-column:span 2">
+            <label>Foto</label>
+            <input id="df-foto" type="file" accept="image/*" />
+            <small style="color:var(--muted);font-size:.7rem;">Sube una imagen desde tu PC</small>
+          </div>
+
+          <!-- ===== DESCRIPCIÓN CORTA ===== -->
+          <div class="p-field" style="grid-column:span 2">
+            <label>Descripción corta</label>
+            <textarea id="df-descripcion" rows="2" placeholder="Breve descripción del servicio..." style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.9rem;padding:.65rem .85rem;outline:none;width:100%;resize:vertical;"></textarea>
+          </div>
         </div>
-        <div class="p-field" style="grid-column:span 2">
-          <label>Categoría</label>
-          <input id="df-cat" type="text" placeholder="Ej: Farmacias, Emergencias, Hospitales..." list="cats-list"/>
-          <datalist id="cats-list"></datalist>
-        </div>
-        <div class="p-field" style="grid-column:span 1">
-          <label>Tipo</label>
-          <select id="df-tipo" class="select-field" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:.65rem .85rem;outline:none;">
-            <option value="servicios">🔧 Servicios</option>
-            <option value="emergencias">🚨 Emergencias</option>
-            <option value="general">📌 General</option>
-          </select>
-        </div>
-        <div class="p-field" style="grid-column:span 3">
-          <label>Nombre</label>
-          <input id="df-nombre" type="text" placeholder="Ej: Farmacia Similar"/>
-        </div>
-        <div class="p-field" style="grid-column:span 2">
-          <label>Teléfono</label>
-          <input id="df-tel" type="tel" placeholder="Ej: 322 123 4567"/>
-        </div>
-        <div class="p-field" style="grid-column:span 2">
-          <label>Horario</label>
-          <input id="df-horario" type="text" placeholder="Ej: 8:00am - 10:00pm"/>
-        </div>
-        <div class="p-field" style="grid-column:span 4">
-          <label>Dirección (opcional)</label>
-          <input id="df-dir" type="text" placeholder="Ej: Calle Hidalgo 45"/>
-        </div>
-      </div>
-      <button class="p-btn-save" style="margin-top:.75rem" onclick="guardarDir()">
-        <span class="btn-text" id="df-btn-txt">➕ Agregar</span>
-        <div class="spinner-btn"></div>
-      </button>
-      <input type="hidden" id="df-edit-id" value=""/>
+
+        <button type="button" class="p-btn-save" style="margin-top:.75rem" onclick="guardarDir()">
+          <span class="btn-text" id="df-btn-txt">➕ Agregar</span>
+          <div class="spinner-btn"></div>
+        </button>
+        <input type="hidden" id="df-edit-id" value=""/>
+      </form>
     </div>
     <div id="dir-admin-wrap" style="margin-top:1rem"></div>
   </div>
 
-  <!-- ===== TRANSMISIONES (NUEVO) ===== -->
+  <!-- TRANSMISIONES -->
   <div id="admin-transmisiones" style="display:none">
+    <!-- ... contenido de transmisiones ... -->
     <div class="trans-admin-form" id="trans-form">
       <h3 class="p-section-title" style="margin-bottom:.75rem">Agregar transmisión</h3>
       <div class="trans-form-grid">
@@ -152,7 +161,7 @@
 </div>
 
 <script>
-// ===== NAVEGACIÓN ENTRE TABS =====
+// ===== FUNCIONES ADMIN =====
 function setAdminTab(tab, el) {
   document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
@@ -168,7 +177,7 @@ function setAdminTab(tab, el) {
   if (tab === 'transmisiones') cargarAdminTrans();
 }
 
-// ===== PUBLICACIONES (funciones ya existentes) =====
+// ===== PUBLICACIONES =====
 async function cargarAdminPubs() {
   const wrap = document.getElementById('pubs-wrap');
   wrap.innerHTML = `<div class="spinner-feed"><span></span><span></span><span></span></div>`;
@@ -295,7 +304,7 @@ async function banearUser(telefono) {
   } catch(e) { toast(e.message); }
 }
 
-// ===== DIRECTORIO =====
+// ===== DIRECTORIO (con subida de imagen a Cloudinary) =====
 let dirItems = [];
 
 async function cargarAdminDir() {
@@ -324,7 +333,7 @@ async function cargarAdminDir() {
               <th>Teléfono</th>
               <th>Horario</th>
               <th>Tipo</th>
-              <th>⭐</th>  <!-- NUEVA COLUMNA PARA CALIFICACIONES -->
+              <th>⭐</th>
               <th></th>
             </tr>
           </thead>
@@ -337,7 +346,7 @@ async function cargarAdminDir() {
                 <td>${escapeHtml(item.telefono || '—')}</td>
                 <td>${escapeHtml(item.horario  || '—')}</td>
                 <td>${escapeHtml(item.tipo || 'general')}</td>
-                <td>${item.total_calificaciones || 0} ⭐</td>  <!-- CALIFICACIONES -->
+                <td>${item.total_calificaciones || 0} ⭐</td>
                 <td class="admin-actions-cell">
                   <button class="admin-btn-rol" onclick="editarDir(${item.id})">✏️</button>
                   <button class="admin-btn-del" onclick="eliminarDir(${item.id})">🗑</button>
@@ -354,28 +363,52 @@ async function cargarAdminDir() {
 
 async function guardarDir() {
   const editId = document.getElementById('df-edit-id').value;
-  const payload = {
-    icono:     document.getElementById('df-icono').value.trim()   || '📍',
-    categoria: document.getElementById('df-cat').value.trim(),
-    nombre:    document.getElementById('df-nombre').value.trim(),
-    telefono:  document.getElementById('df-tel').value.trim(),
-    horario:   document.getElementById('df-horario').value.trim(),
-    direccion: document.getElementById('df-dir').value.trim(),
-    orden:     0,
-    tipo:      document.getElementById('df-tipo').value
-  };
-  if (!payload.categoria || !payload.nombre) { toast('⚠️ Categoría y nombre son obligatorios'); return; }
+  const formData = new FormData();
+  
+  const icono = document.getElementById('df-icono').value.trim() || '📍';
+  const categoria = document.getElementById('df-cat').value.trim();
+  const nombre = document.getElementById('df-nombre').value.trim();
+  const telefono = document.getElementById('df-tel').value.trim();
+  const horario = document.getElementById('df-horario').value.trim();
+  const direccion = document.getElementById('df-dir').value.trim();
+  const descripcion = document.getElementById('df-descripcion').value.trim();
+  const tipo = document.getElementById('df-tipo').value;
+  const fotoFile = document.getElementById('df-foto').files[0];
+
+  if (!categoria || !nombre) { toast('⚠️ Categoría y nombre son obligatorios'); return; }
+
+  formData.append('icono', icono);
+  formData.append('categoria', categoria);
+  formData.append('nombre', nombre);
+  formData.append('telefono', telefono);
+  formData.append('horario', horario);
+  formData.append('direccion', direccion);
+  formData.append('descripcion_corta', descripcion);
+  formData.append('tipo', tipo);
+  if (fotoFile) {
+    formData.append('foto', fotoFile);
+  }
+
   try {
+    const csrf = await getCsrfToken();
+    let url = '/api/directorio';
+    let method = 'POST';
     if (editId) {
-      await api(`/api/directorio/${editId}`, 'PUT', payload);
-      toast('✅ Actualizado');
-    } else {
-      await api('/api/directorio', 'POST', payload);
-      toast('✅ Agregado');
+      url += '/' + editId;
+      method = 'PUT';
     }
+    const res = await fetch(url, {
+      method: method,
+      body: formData,
+      credentials: 'include',
+      headers: { 'X-CSRF-Token': csrf }
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al guardar');
+    toast(editId ? '✅ Actualizado' : '✅ Agregado');
     limpiarFormDir();
     cargarAdminDir();
-  } catch(e) { toast(e.message); }
+  } catch(e) { toast('Error: ' + e.message); }
 }
 
 function editarDir(id) {
@@ -387,68 +420,36 @@ function editarDir(id) {
   document.getElementById('df-tel').value     = item.telefono || '';
   document.getElementById('df-horario').value = item.horario  || '';
   document.getElementById('df-dir').value     = item.direccion|| '';
+  document.getElementById('df-descripcion').value = item.descripcion_corta || '';
   document.getElementById('df-tipo').value    = item.tipo     || 'general';
   document.getElementById('df-edit-id').value = id;
   document.getElementById('df-btn-txt').textContent = '💾 Guardar cambios';
+  document.getElementById('df-foto').value = ''; // resetear input file
   document.getElementById('dir-form').scrollIntoView({ behavior: 'smooth' });
 }
 
 function limpiarFormDir() {
-  ['df-icono','df-cat','df-nombre','df-tel','df-horario','df-dir','df-foto','df-descripcion'].forEach(id => {
+  ['df-icono','df-cat','df-nombre','df-tel','df-horario','df-dir','df-descripcion'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = id === 'df-icono' ? '📍' : '';
   });
+  document.getElementById('df-foto').value = '';
   document.getElementById('df-tipo').value = 'general';
   document.getElementById('df-edit-id').value = '';
   document.getElementById('df-btn-txt').textContent = '➕ Agregar';
 }
 
-async function guardarDir() {
-  const editId = document.getElementById('df-edit-id').value;
-  const payload = {
-    icono:     document.getElementById('df-icono').value.trim()   || '📍',
-    categoria: document.getElementById('df-cat').value.trim(),
-    nombre:    document.getElementById('df-nombre').value.trim(),
-    telefono:  document.getElementById('df-tel').value.trim(),
-    horario:   document.getElementById('df-horario').value.trim(),
-    direccion: document.getElementById('df-dir').value.trim(),
-    foto:      document.getElementById('df-foto').value.trim(),
-    descripcion_corta: document.getElementById('df-descripcion').value.trim(),
-    orden:     0,
-    tipo:      document.getElementById('df-tipo').value
-  };
-  if (!payload.categoria || !payload.nombre) { toast('⚠️ Categoría y nombre son obligatorios'); return; }
+async function eliminarDir(id) {
+  if (!confirm('¿Eliminar esta entrada?')) return;
   try {
-    if (editId) {
-      await api(`/api/directorio/${editId}`, 'PUT', payload);
-      toast('✅ Actualizado');
-    } else {
-      await api('/api/directorio', 'POST', payload);
-      toast('✅ Agregado');
-    }
-    limpiarFormDir();
-    cargarAdminDir();
+    await api(`/api/directorio/${id}`, 'DELETE');
+    document.getElementById(`dir-row-${id}`)?.remove();
+    dirItems = dirItems.filter(i => i.id !== id);
+    toast('🗑 Eliminado');
   } catch(e) { toast(e.message); }
 }
 
-function editarDir(id) {
-  const item = dirItems.find(i => i.id === id);
-  if (!item) return;
-  document.getElementById('df-icono').value   = item.icono    || '📍';
-  document.getElementById('df-cat').value     = item.categoria;
-  document.getElementById('df-nombre').value  = item.nombre;
-  document.getElementById('df-tel').value     = item.telefono || '';
-  document.getElementById('df-horario').value = item.horario  || '';
-  document.getElementById('df-dir').value     = item.direccion|| '';
-  document.getElementById('df-foto').value    = item.foto     || '';
-  document.getElementById('df-descripcion').value = item.descripcion_corta || '';
-  document.getElementById('df-tipo').value    = item.tipo     || 'general';
-  document.getElementById('df-edit-id').value = id;
-  document.getElementById('df-btn-txt').textContent = '💾 Guardar cambios';
-  document.getElementById('dir-form').scrollIntoView({ behavior: 'smooth' });
-}
-
-// ===== TRANSMISIONES (NUEVO) =====
+// ===== TRANSMISIONES =====
 let transItems = [];
 
 async function cargarAdminTrans() {

@@ -1,17 +1,33 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from db import get_db
 from security import require_api_admin, get_current_user
 import html
+import cloudinary.uploader
+import os
 
 dir_bp = Blueprint('directorio', __name__, url_prefix='/api/directorio')
 
 
+def subir_imagen(archivo):
+    """Sube una imagen a Cloudinary y devuelve la URL."""
+    if not archivo:
+        return None
+    try:
+        resultado = cloudinary.uploader.upload(
+            archivo,
+            folder='comercio/directorio',
+            resource_type='image'
+        )
+        return resultado['secure_url']
+    except Exception as e:
+        current_app.logger.error(f"Error subiendo imagen directorio: {e}")
+        return None
+
+
 @dir_bp.route('', methods=['GET'])
 def listar():
-    """Lista todos los registros activos agrupados por categoría, con calificaciones."""
     db = get_db()
     cur = db.cursor()
-
     tipo = request.args.get('tipo')
 
     if tipo:
@@ -59,7 +75,6 @@ def listar():
 
 @dir_bp.route('/<int:item_id>/calificar', methods=['POST'])
 def calificar(item_id):
-    """Califica un servicio con 1-5 estrellas."""
     user = get_current_user()
     if not user:
         return jsonify({'error': 'Debes iniciar sesión para calificar'}), 401
@@ -71,16 +86,12 @@ def calificar(item_id):
 
     db = get_db()
     cur = db.cursor()
-
-    # Verificar que el directorio existe
     cur.execute("SELECT id FROM directorio WHERE id = %s AND activo = true", (item_id,))
     if not cur.fetchone():
         cur.close()
         return jsonify({'error': 'Servicio no encontrado'}), 404
 
     telefono = user['telefono']
-
-    # Insertar o actualizar calificación
     cur.execute("""
         INSERT INTO calificaciones_directorio (directorio_id, usuario_telefono, calificacion)
         VALUES (%s, %s, %s)
@@ -92,7 +103,6 @@ def calificar(item_id):
     db.commit()
     cur.close()
 
-    # Calcular nuevo promedio
     db2 = get_db()
     cur2 = db2.cursor()
     cur2.execute("""
@@ -113,11 +123,9 @@ def calificar(item_id):
 
 @dir_bp.route('/<int:item_id>/mi-calificacion', methods=['GET'])
 def mi_calificacion(item_id):
-    """Obtiene la calificación que el usuario actual dio a un servicio."""
     user = get_current_user()
     if not user:
         return jsonify({'calificacion': None})
-
     db = get_db()
     cur = db.cursor()
     cur.execute("""
@@ -134,18 +142,29 @@ def crear():
     _, error = require_api_admin()
     if error:
         return error
-    data = request.get_json(silent=True) or {}
-    campos = ['categoria', 'nombre', 'telefono', 'horario', 'direccion', 'icono', 'orden', 'tipo', 'foto', 'descripcion_corta']
+
+    # Leer datos del formulario (multipart/form-data)
+    data = request.form
+    foto_file = request.files.get('foto')
+
+    foto_url = None
+    if foto_file and foto_file.filename:
+        foto_url = subir_imagen(foto_file)
+        if not foto_url:
+            return jsonify({'error': 'Error al subir la imagen'}), 500
+
+    campos = ['categoria', 'nombre', 'telefono', 'horario', 'direccion', 'icono', 'orden', 'tipo', 'descripcion_corta']
     valores = [data.get(c, '') or (0 if c == 'orden' else '') for c in campos]
     if not valores[7]:
         valores[7] = 'general'
 
+    # Insertar
     db = get_db()
     cur = db.cursor()
     cur.execute("""
         INSERT INTO directorio (categoria, nombre, telefono, horario, direccion, icono, orden, tipo, foto, descripcion_corta)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
-    """, valores)
+    """, valores + [foto_url])
     nuevo_id = cur.fetchone()[0]
     db.commit()
     cur.close()
@@ -157,16 +176,43 @@ def actualizar(item_id):
     _, error = require_api_admin()
     if error:
         return error
-    data = request.get_json(silent=True) or {}
-    campos = ['categoria', 'nombre', 'telefono', 'horario', 'direccion', 'icono', 'orden', 'tipo', 'foto', 'descripcion_corta']
-    updates = {k: data[k] for k in campos if k in data}
+
+    data = request.form
+    foto_file = request.files.get('foto')
+
+    # Obtener datos actuales para saber si hay foto antigua (opcional)
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("SELECT foto FROM directorio WHERE id = %s", (item_id,))
+    row = cur.fetchone()
+    cur.close()
+    if not row:
+        return jsonify({'error': 'No encontrado'}), 404
+    foto_actual = row[0]
+
+    # Subir nueva foto si se envió
+    foto_url = foto_actual
+    if foto_file and foto_file.filename:
+        nueva_foto = subir_imagen(foto_file)
+        if nueva_foto:
+            foto_url = nueva_foto
+        else:
+            return jsonify({'error': 'Error al subir la imagen'}), 500
+
+    campos = ['categoria', 'nombre', 'telefono', 'horario', 'direccion', 'icono', 'orden', 'tipo', 'descripcion_corta']
+    updates = {}
+    for c in campos:
+        if c in data:
+            updates[c] = data[c] or (0 if c == 'orden' else '')
+    if foto_url:
+        updates['foto'] = foto_url
+
     if not updates:
         return jsonify({'error': 'Nada que actualizar'}), 400
 
     set_clause = ', '.join(f"{k} = %s" for k in updates)
     valores = list(updates.values()) + [item_id]
 
-    db = get_db()
     cur = db.cursor()
     cur.execute(f"UPDATE directorio SET {set_clause} WHERE id = %s", valores)
     db.commit()
