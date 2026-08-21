@@ -304,16 +304,30 @@ async function cargarAdminDir() {
   try {
     const grupos = await api('/api/directorio');
     dirItems = Object.values(grupos).flat();
+
     const cats = [...new Set(Object.keys(grupos))];
     document.getElementById('cats-list').innerHTML = cats.map(c => `<option value="${c}">`).join('');
+
     if (!dirItems.length) {
       wrap.innerHTML = `<p style="color:var(--muted);font-size:.85rem;padding:.5rem 0">Sin entradas aún.</p>`;
       return;
     }
+
     wrap.innerHTML = `
       <div class="admin-table-wrap">
         <table class="admin-table">
-          <thead><tr><th>Ico</th><th>Categoría</th><th>Nombre</th><th>Teléfono</th><th>Horario</th><th>Tipo</th><th></th></tr></thead>
+          <thead>
+            <tr>
+              <th>Ico</th>
+              <th>Categoría</th>
+              <th>Nombre</th>
+              <th>Teléfono</th>
+              <th>Horario</th>
+              <th>Tipo</th>
+              <th>⭐</th>  <!-- NUEVA COLUMNA PARA CALIFICACIONES -->
+              <th></th>
+            </tr>
+          </thead>
           <tbody>
             ${dirItems.map(item => `
               <tr id="dir-row-${item.id}">
@@ -323,11 +337,13 @@ async function cargarAdminDir() {
                 <td>${escapeHtml(item.telefono || '—')}</td>
                 <td>${escapeHtml(item.horario  || '—')}</td>
                 <td>${escapeHtml(item.tipo || 'general')}</td>
+                <td>${item.total_calificaciones || 0} ⭐</td>  <!-- CALIFICACIONES -->
                 <td class="admin-actions-cell">
                   <button class="admin-btn-rol" onclick="editarDir(${item.id})">✏️</button>
                   <button class="admin-btn-del" onclick="eliminarDir(${item.id})">🗑</button>
                 </td>
-              </tr>`).join('')}
+              </tr>
+            `).join('')}
           </tbody>
         </table>
       </div>`;
