@@ -7,56 +7,218 @@
       <polyline points="15 18 9 12 15 6"/>
     </svg> Volver
   </button>
-  <h2 class="dir-title">🚨 Emergencias y Comercios</h2>
-  <p class="dir-sub">Información esencial de José Azueta</p>
+  <h2 class="dir-title">{% if request.path == '/servicios' %}🔧 Servicios{% else %}🚨 Emergencias{% endif %}</h2>
+  <p class="dir-sub">{% if request.path == '/servicios' %}Plomeros, electricistas y más en José Azueta{% else %}Información esencial para emergencias{% endif %}</p>
 </div>
 
-<div id="dir-wrap"></div>
+<div id="servicios-wrap"></div>
 
 <script>
-async function cargarDirectorio() {
-  const wrap = document.getElementById('dir-wrap');
+const TIPO = '{% if request.path == "/servicios" %}servicios{% else %}emergencias{% endif %}';
+
+async function cargarServicios() {
+  const wrap = document.getElementById('servicios-wrap');
   wrap.innerHTML = `<div class="spinner-feed"><span></span><span></span><span></span></div>`;
   try {
-    // Filtrar por tipo emergencias
-    const grupos = await api('/api/directorio?tipo=emergencias');
-    const cats   = Object.keys(grupos);
+    const grupos = await api(`/api/directorio?tipo=${TIPO}`);
+    const cats = Object.keys(grupos);
 
     if (!cats.length) {
-      wrap.innerHTML = `<div class="empty">
-        <div class="empty-icon">📋</div>
-        <p>Aún no hay información de emergencias disponible.<br>El administrador la agregará pronto.</p>
-      </div>`;
+      wrap.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><p>No hay registros disponibles.<br>El administrador los agregará pronto.</p></div>`;
       return;
     }
 
-    wrap.innerHTML = cats.map(cat => `
-      <div class="dir-grupo">
-        <div class="dir-grupo-titulo">${escapeHtml(cat)}</div>
-        <div class="dir-lista">
-          ${grupos[cat].map(item => `
-            <div class="dir-item">
-              <div class="dir-ico">${escapeHtml(item.icono || '📍')}</div>
-              <div class="dir-info">
-                <div class="dir-nombre">${escapeHtml(item.nombre)}</div>
-                ${item.horario  ? `<div class="dir-dato">🕐 ${escapeHtml(item.horario)}</div>`  : ''}
-                ${item.direccion? `<div class="dir-dato">📍 ${escapeHtml(item.direccion)}</div>`:''}
-              </div>
+    let html = '';
+    for (const cat of cats) {
+      html += `<div class="dir-grupo"><div class="dir-grupo-titulo">${escapeHtml(cat)}</div><div class="dir-grid">`;
+      for (const item of grupos[cat]) {
+        const promedio = item.promedio || 0;
+        const totalEstrellas = item.total_calificaciones || 0;
+        const estrellasHtml = generarEstrellas(promedio);
+        const fotoHtml = item.foto ? `<img src="${item.foto}" class="dir-card-foto" />` : `<div class="dir-card-foto dir-card-nofoto">${item.icono || '📍'}</div>`;
+        html += `
+          <div class="dir-card" data-id="${item.id}">
+            ${fotoHtml}
+            <div class="dir-card-body">
+              <div class="dir-card-nombre">${escapeHtml(item.nombre)}</div>
+              ${item.descripcion_corta ? `<div class="dir-card-desc">${escapeHtml(item.descripcion_corta)}</div>` : ''}
+              <div class="dir-card-estrellas">${estrellasHtml} <span class="dir-card-total">(${totalEstrellas})</span></div>
+              ${item.horario ? `<div class="dir-card-dato">🕐 ${escapeHtml(item.horario)}</div>` : ''}
+              ${item.direccion ? `<div class="dir-card-dato">📍 ${escapeHtml(item.direccion)}</div>` : ''}
               ${item.telefono ? `
-                <a href="tel:${escapeHtml(item.telefono)}" class="dir-tel-btn">
-                  <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.68A2 2 0 012 .84h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 8.69a16 16 0 006.29 6.29l1.21-1.21a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
-                  </svg>
-                  ${escapeHtml(item.telefono)}
-                </a>` : ''}
-            </div>`).join('')}
-        </div>
-      </div>`).join('');
+                <div class="dir-card-actions">
+                  <a href="tel:${escapeHtml(item.telefono)}" class="dir-tel-btn">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.68A2 2 0 012 .84h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 8.69a16 16 0 006.29 6.29l1.21-1.21a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
+                    </svg>
+                    ${escapeHtml(item.telefono)}
+                  </a>
+                  <button class="dir-calificar-btn" onclick="calificar(${item.id})" title="Calificar">⭐ Calificar</button>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      }
+      html += `</div></div>`;
+    }
+    wrap.innerHTML = html;
   } catch(e) {
     wrap.innerHTML = `<div class="empty"><p>${escapeHtml(e.message)}</p></div>`;
   }
 }
 
-document.addEventListener('DOMContentLoaded', cargarDirectorio);
+function generarEstrellas(promedio) {
+  const total = 5;
+  const llenas = Math.round(promedio);
+  let html = '';
+  for (let i = 1; i <= total; i++) {
+    html += i <= llenas ? '⭐' : '☆';
+  }
+  return html;
+}
+
+async function calificar(id) {
+  const usuario = await api('/api/auth/yo').catch(() => null);
+  if (!usuario) {
+    toast('⚠️ Inicia sesión para calificar');
+    return;
+  }
+  // Usar un prompt simple para elegir 1-5 estrellas
+  const calificacion = prompt('Califica este servicio (1-5 estrellas):', '5');
+  if (calificacion === null) return;
+  const num = parseInt(calificacion);
+  if (isNaN(num) || num < 1 || num > 5) {
+    toast('❌ Ingresa un número entre 1 y 5');
+    return;
+  }
+  try {
+    const data = await api(`/api/directorio/${id}/calificar`, 'POST', { calificacion: num });
+    toast(`✅ Calificación de ${num} estrellas guardada`);
+    cargarServicios();
+  } catch(e) {
+    toast('Error: ' + e.message);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', cargarServicios);
 </script>
+
+<style>
+  .dir-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+    margin-top: 0.5rem;
+  }
+  .dir-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: transform 0.15s, border-color 0.15s;
+  }
+  .dir-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--border2);
+  }
+  .dir-card-foto {
+    width: 100%;
+    height: 140px;
+    object-fit: cover;
+    background: var(--bg3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    color: var(--muted);
+  }
+  .dir-card-nofoto {
+    font-size: 3rem;
+    color: var(--muted);
+  }
+  .dir-card-body {
+    padding: 0.75rem 1rem 1rem;
+  }
+  .dir-card-nombre {
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--text);
+    margin-bottom: 0.25rem;
+  }
+  .dir-card-desc {
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+  }
+  .dir-card-estrellas {
+    font-size: 1rem;
+    letter-spacing: 1px;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+  .dir-card-total {
+    font-size: 0.7rem;
+    color: var(--muted);
+  }
+  .dir-card-dato {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-bottom: 0.25rem;
+  }
+  .dir-card-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .dir-tel-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(37,211,102,.1);
+    color: #25d366;
+    border: 1px solid rgba(37,211,102,.2);
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.35rem 0.75rem;
+    text-decoration: none;
+    transition: background 0.15s;
+  }
+  .dir-tel-btn:hover {
+    background: rgba(37,211,102,.2);
+  }
+  .dir-calificar-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.35rem 0.75rem;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .dir-calificar-btn:hover {
+    background: var(--bg3);
+    color: var(--text);
+  }
+  @media (max-width: 500px) {
+    .dir-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+    .dir-card-foto {
+      height: 100px;
+    }
+  }
+  @media (max-width: 380px) {
+    .dir-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
 {% endblock %}

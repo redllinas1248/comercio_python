@@ -24,6 +24,14 @@
   </div>
 
   <!-- DIRECTORIO -->
+   <div class="p-field" style="grid-column:span 4">
+  <label>Foto (URL)</label>
+  <input id="df-foto" type="text" placeholder="https://ejemplo.com/foto.jpg"/>
+</div>
+<div class="p-field" style="grid-column:span 4">
+  <label>Descripción corta</label>
+  <textarea id="df-descripcion" rows="2" placeholder="Breve descripción del servicio..." style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.9rem;padding:.65rem .85rem;outline:none;width:100%;resize:vertical;"></textarea>
+</div>
   <div id="admin-directorio" style="display:none">
     <div class="dir-admin-form" id="dir-form">
       <h3 class="p-section-title" style="margin-bottom:.75rem">Agregar entrada</h3>
@@ -370,22 +378,58 @@ function editarDir(id) {
 }
 
 function limpiarFormDir() {
-  ['df-icono','df-cat','df-nombre','df-tel','df-horario','df-dir'].forEach(id => {
-    document.getElementById(id).value = id === 'df-icono' ? '📍' : '';
+  ['df-icono','df-cat','df-nombre','df-tel','df-horario','df-dir','df-foto','df-descripcion'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = id === 'df-icono' ? '📍' : '';
   });
   document.getElementById('df-tipo').value = 'general';
   document.getElementById('df-edit-id').value = '';
   document.getElementById('df-btn-txt').textContent = '➕ Agregar';
 }
 
-async function eliminarDir(id) {
-  if (!confirm('¿Eliminar esta entrada?')) return;
+async function guardarDir() {
+  const editId = document.getElementById('df-edit-id').value;
+  const payload = {
+    icono:     document.getElementById('df-icono').value.trim()   || '📍',
+    categoria: document.getElementById('df-cat').value.trim(),
+    nombre:    document.getElementById('df-nombre').value.trim(),
+    telefono:  document.getElementById('df-tel').value.trim(),
+    horario:   document.getElementById('df-horario').value.trim(),
+    direccion: document.getElementById('df-dir').value.trim(),
+    foto:      document.getElementById('df-foto').value.trim(),
+    descripcion_corta: document.getElementById('df-descripcion').value.trim(),
+    orden:     0,
+    tipo:      document.getElementById('df-tipo').value
+  };
+  if (!payload.categoria || !payload.nombre) { toast('⚠️ Categoría y nombre son obligatorios'); return; }
   try {
-    await api(`/api/directorio/${id}`, 'DELETE');
-    document.getElementById(`dir-row-${id}`)?.remove();
-    dirItems = dirItems.filter(i => i.id !== id);
-    toast('🗑 Eliminado');
+    if (editId) {
+      await api(`/api/directorio/${editId}`, 'PUT', payload);
+      toast('✅ Actualizado');
+    } else {
+      await api('/api/directorio', 'POST', payload);
+      toast('✅ Agregado');
+    }
+    limpiarFormDir();
+    cargarAdminDir();
   } catch(e) { toast(e.message); }
+}
+
+function editarDir(id) {
+  const item = dirItems.find(i => i.id === id);
+  if (!item) return;
+  document.getElementById('df-icono').value   = item.icono    || '📍';
+  document.getElementById('df-cat').value     = item.categoria;
+  document.getElementById('df-nombre').value  = item.nombre;
+  document.getElementById('df-tel').value     = item.telefono || '';
+  document.getElementById('df-horario').value = item.horario  || '';
+  document.getElementById('df-dir').value     = item.direccion|| '';
+  document.getElementById('df-foto').value    = item.foto     || '';
+  document.getElementById('df-descripcion').value = item.descripcion_corta || '';
+  document.getElementById('df-tipo').value    = item.tipo     || 'general';
+  document.getElementById('df-edit-id').value = id;
+  document.getElementById('df-btn-txt').textContent = '💾 Guardar cambios';
+  document.getElementById('dir-form').scrollIntoView({ behavior: 'smooth' });
 }
 
 // ===== TRANSMISIONES (NUEVO) =====
