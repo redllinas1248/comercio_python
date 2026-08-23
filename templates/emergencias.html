@@ -2,19 +2,51 @@
 {% block content %}
 
 <div class="dir-header">
-  <button class="btn-back" onclick="history.back()">
-    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-      <polyline points="15 18 9 12 15 6"/>
-    </svg> Volver
-  </button>
-  <h2 class="dir-title">{% if request.path == '/servicios' %}🔧 Servicios{% else %}🚨 Emergencias{% endif %}</h2>
-  <p class="dir-sub">{% if request.path == '/servicios' %}Plomeros, electricistas y más en José Azueta{% else %}Información esencial para emergencias{% endif %}</p>
+  <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem;">
+    <button class="btn-back" onclick="history.back()">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg> Volver
+    </button>
+    <div style="display:flex; gap:0.5rem;">
+      <!-- Botón compartir Facebook -->
+      <button class="share-btn share-fb" onclick="compartirFacebook()" style="padding:0.4rem 0.8rem; font-size:0.8rem;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/>
+        </svg>
+        Compartir
+      </button>
+      <!-- Botón compartir WhatsApp -->
+      <button class="share-btn share-wacopy" onclick="compartirWhatsApp()" style="padding:0.4rem 0.8rem; font-size:0.8rem;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+          <path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.118 1.528 5.847L.057 23.882l6.198-1.448A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.894a9.878 9.878 0 01-5.031-1.378l-.361-.214-3.681.861.878-3.596-.235-.369A9.865 9.865 0 012.106 12C2.106 6.58 6.58 2.106 12 2.106c5.421 0 9.894 4.474 9.894 9.894 0 5.421-4.473 9.894-9.894 9.894z"/>
+        </svg>
+        WhatsApp
+      </button>
+    </div>
+  </div>
+  <h2 class="dir-title">🚨 Emergencias y comercios</h2>
+  <p class="dir-sub">Información esencial para emergencias en José Azueta</p>
 </div>
 
 <div id="servicios-wrap"></div>
 
 <script>
-const TIPO = '{% if request.path == "/servicios" %}servicios{% else %}emergencias{% endif %}';
+// ===== FUNCIONES DE COMPARTIR =====
+function compartirFacebook() {
+  const url = encodeURIComponent(window.location.href);
+  window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank', 'width=600,height=400');
+}
+
+function compartirWhatsApp() {
+  const url = encodeURIComponent(window.location.href);
+  const msg = encodeURIComponent('🚨 ¡Información de emergencias en José Azueta!');
+  window.open(`https://wa.me/?text=${msg}%20${url}`, '_blank');
+}
+
+// ===== RESTO DEL CÓDIGO (cargar servicios, calificar, etc.) =====
+const TIPO = 'servicios';
 
 async function cargarServicios() {
   const wrap = document.getElementById('servicios-wrap');
@@ -24,7 +56,7 @@ async function cargarServicios() {
     const cats = Object.keys(grupos);
 
     if (!cats.length) {
-      wrap.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><p>No hay registros disponibles.<br>El administrador los agregará pronto.</p></div>`;
+      wrap.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><p>No hay servicios disponibles.<br>El administrador los agregará pronto.</p></div>`;
       return;
     }
 
@@ -84,7 +116,6 @@ async function calificar(id) {
     toast('⚠️ Inicia sesión para calificar');
     return;
   }
-  // Usar un prompt simple para elegir 1-5 estrellas
   const calificacion = prompt('Califica este servicio (1-5 estrellas):', '5');
   if (calificacion === null) return;
   const num = parseInt(calificacion);
@@ -207,6 +238,22 @@ document.addEventListener('DOMContentLoaded', cargarServicios);
     background: var(--bg3);
     color: var(--text);
   }
+  .share-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.4rem 0.8rem;
+    cursor: pointer;
+    color: #fff;
+    transition: opacity 0.2s;
+  }
+  .share-btn:hover { opacity: 0.85; }
+  .share-fb { background: #1877f2; }
+  .share-wacopy { background: #25d366; }
   @media (max-width: 500px) {
     .dir-grid {
       grid-template-columns: 1fr 1fr;
