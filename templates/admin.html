@@ -362,7 +362,6 @@ async function guardarDir() {
   const formData = new FormData();
   
   const icono = document.getElementById('df-icono').value.trim() || '📍';
-  
   const nombre = document.getElementById('df-nombre').value.trim();
   const telefono = document.getElementById('df-tel').value.trim();
   const horario = document.getElementById('df-horario').value.trim();
@@ -371,10 +370,9 @@ async function guardarDir() {
   const tipo = document.getElementById('df-tipo').value;
   const fotoFile = document.getElementById('df-foto').files[0];
 
-  if (!categoria || !nombre) { toast('⚠️ Categoría y nombre son obligatorios'); return; }
+  if (!nombre) { toast('⚠️ El nombre es obligatorio'); return; }
 
   formData.append('icono', icono);
-  formData.append('categoria', categoria);
   formData.append('nombre', nombre);
   formData.append('telefono', telefono);
   formData.append('horario', horario);
@@ -411,7 +409,6 @@ function editarDir(id) {
   const item = dirItems.find(i => i.id === id);
   if (!item) return;
   document.getElementById('df-icono').value   = item.icono    || '📍';
-  
   document.getElementById('df-nombre').value  = item.nombre;
   document.getElementById('df-tel').value     = item.telefono || '';
   document.getElementById('df-horario').value = item.horario  || '';
@@ -420,12 +417,12 @@ function editarDir(id) {
   document.getElementById('df-tipo').value    = item.tipo     || 'general';
   document.getElementById('df-edit-id').value = id;
   document.getElementById('df-btn-txt').textContent = '💾 Guardar cambios';
-  document.getElementById('df-foto').value = ''; // resetear input file
+  document.getElementById('df-foto').value = '';
   document.getElementById('dir-form').scrollIntoView({ behavior: 'smooth' });
 }
 
 function limpiarFormDir() {
-  ['df-icono','df-cat','df-nombre','df-tel','df-horario','df-dir','df-descripcion'].forEach(id => {
+  ['df-icono','df-nombre','df-tel','df-horario','df-dir','df-descripcion'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = id === 'df-icono' ? '📍' : '';
   });
