@@ -33,11 +33,7 @@
             <label>Ícono</label>
             <input id="df-icono" type="text" value="📍" placeholder="Emoji" maxlength="4" style="width:70px"/>
           </div>
-          <div class="p-field" style="grid-column:span 2">
-            <label>Categoría</label>
-            <input id="df-cat" type="text" placeholder="Ej: Farmacias, Emergencias, Hospitales..." list="cats-list"/>
-            <datalist id="cats-list"></datalist>
-          </div>
+
           <div class="p-field" style="grid-column:span 1">
             <label>Tipo</label>
             <select id="df-tipo" class="select-field" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:.65rem .85rem;outline:none;">
@@ -366,7 +362,7 @@ async function guardarDir() {
   const formData = new FormData();
   
   const icono = document.getElementById('df-icono').value.trim() || '📍';
-  const categoria = document.getElementById('df-cat').value.trim();
+  
   const nombre = document.getElementById('df-nombre').value.trim();
   const telefono = document.getElementById('df-tel').value.trim();
   const horario = document.getElementById('df-horario').value.trim();
@@ -415,7 +411,7 @@ function editarDir(id) {
   const item = dirItems.find(i => i.id === id);
   if (!item) return;
   document.getElementById('df-icono').value   = item.icono    || '📍';
-  document.getElementById('df-cat').value     = item.categoria;
+  
   document.getElementById('df-nombre').value  = item.nombre;
   document.getElementById('df-tel').value     = item.telefono || '';
   document.getElementById('df-horario').value = item.horario  || '';
