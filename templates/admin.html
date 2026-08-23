@@ -311,7 +311,7 @@ async function cargarAdminDir() {
     dirItems = Object.values(grupos).flat();
 
     const cats = [...new Set(Object.keys(grupos))];
-    document.getElementById('cats-list').innerHTML = cats.map(c => `<option value="${c}">`).join('');
+    
 
     if (!dirItems.length) {
       wrap.innerHTML = `<p style="color:var(--muted);font-size:.85rem;padding:.5rem 0">Sin entradas aún.</p>`;
