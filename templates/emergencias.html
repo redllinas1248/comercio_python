@@ -9,14 +9,12 @@
       </svg> Volver
     </button>
     <div style="display:flex; gap:0.5rem;">
-      <!-- Botón compartir Facebook -->
       <button class="share-btn share-fb" onclick="compartirFacebook()" style="padding:0.4rem 0.8rem; font-size:0.8rem;">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
           <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/>
         </svg>
         Compartir
       </button>
-      <!-- Botón compartir WhatsApp -->
       <button class="share-btn share-wacopy" onclick="compartirWhatsApp()" style="padding:0.4rem 0.8rem; font-size:0.8rem;">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
           <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
@@ -26,14 +24,13 @@
       </button>
     </div>
   </div>
-  <h2 class="dir-title">🚨 Emergencias y comercios</h2>
+  <h2 class="dir-title">🚨 Emergencias</h2>
   <p class="dir-sub">Información esencial para emergencias en José Azueta</p>
 </div>
 
-<div id="servicios-wrap"></div>
+<div id="emergencias-wrap"></div>
 
 <script>
-// ===== FUNCIONES DE COMPARTIR =====
 function compartirFacebook() {
   const url = encodeURIComponent(window.location.href);
   window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank', 'width=600,height=400');
@@ -45,18 +42,17 @@ function compartirWhatsApp() {
   window.open(`https://wa.me/?text=${msg}%20${url}`, '_blank');
 }
 
-// ===== RESTO DEL CÓDIGO (cargar servicios, calificar, etc.) =====
-const TIPO = 'servicios';
+const TIPO = 'emergencias';  // ← CORRECTO (antes estaba 'servicios')
 
-async function cargarServicios() {
-  const wrap = document.getElementById('servicios-wrap');
+async function cargarEmergencias() {
+  const wrap = document.getElementById('emergencias-wrap');
   wrap.innerHTML = `<div class="spinner-feed"><span></span><span></span><span></span></div>`;
   try {
     const grupos = await api(`/api/directorio?tipo=${TIPO}`);
     const cats = Object.keys(grupos);
 
     if (!cats.length) {
-      wrap.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><p>No hay servicios disponibles.<br>El administrador los agregará pronto.</p></div>`;
+      wrap.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><p>No hay información de emergencias disponible.<br>El administrador la agregará pronto.</p></div>`;
       return;
     }
 
@@ -126,146 +122,37 @@ async function calificar(id) {
   try {
     const data = await api(`/api/directorio/${id}/calificar`, 'POST', { calificacion: num });
     toast(`✅ Calificación de ${num} estrellas guardada`);
-    cargarServicios();
+    cargarEmergencias();
   } catch(e) {
     toast('Error: ' + e.message);
   }
 }
 
-document.addEventListener('DOMContentLoaded', cargarServicios);
+document.addEventListener('DOMContentLoaded', cargarEmergencias);
 </script>
 
 <style>
-  .dir-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 1rem;
-    margin-top: 0.5rem;
-  }
-  .dir-card {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    overflow: hidden;
-    transition: transform 0.15s, border-color 0.15s;
-  }
-  .dir-card:hover {
-    transform: translateY(-2px);
-    border-color: var(--border2);
-  }
-  .dir-card-foto {
-    width: 100%;
-    height: 140px;
-    object-fit: cover;
-    background: var(--bg3);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 3rem;
-    color: var(--muted);
-  }
-  .dir-card-nofoto {
-    font-size: 3rem;
-    color: var(--muted);
-  }
-  .dir-card-body {
-    padding: 0.75rem 1rem 1rem;
-  }
-  .dir-card-nombre {
-    font-weight: 600;
-    font-size: 1rem;
-    color: var(--text);
-    margin-bottom: 0.25rem;
-  }
-  .dir-card-desc {
-    font-size: 0.85rem;
-    color: var(--muted);
-    margin-bottom: 0.5rem;
-    line-height: 1.4;
-  }
-  .dir-card-estrellas {
-    font-size: 1rem;
-    letter-spacing: 1px;
-    margin-bottom: 0.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-  }
-  .dir-card-total {
-    font-size: 0.7rem;
-    color: var(--muted);
-  }
-  .dir-card-dato {
-    font-size: 0.8rem;
-    color: var(--muted);
-    margin-bottom: 0.25rem;
-  }
-  .dir-card-actions {
-    display: flex;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
-    flex-wrap: wrap;
-  }
-  .dir-tel-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    background: rgba(37,211,102,.1);
-    color: #25d366;
-    border: 1px solid rgba(37,211,102,.2);
-    border-radius: 8px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    padding: 0.35rem 0.75rem;
-    text-decoration: none;
-    transition: background 0.15s;
-  }
-  .dir-tel-btn:hover {
-    background: rgba(37,211,102,.2);
-  }
-  .dir-calificar-btn {
-    background: none;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--muted);
-    font-size: 0.75rem;
-    font-weight: 600;
-    padding: 0.35rem 0.75rem;
-    cursor: pointer;
-    transition: background 0.15s, color 0.15s;
-  }
-  .dir-calificar-btn:hover {
-    background: var(--bg3);
-    color: var(--text);
-  }
-  .share-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    border: none;
-    border-radius: 8px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    padding: 0.4rem 0.8rem;
-    cursor: pointer;
-    color: #fff;
-    transition: opacity 0.2s;
-  }
+  .dir-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; margin-top: 0.5rem; }
+  .dir-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; transition: transform 0.15s, border-color 0.15s; }
+  .dir-card:hover { transform: translateY(-2px); border-color: var(--border2); }
+  .dir-card-foto { width: 100%; height: 140px; object-fit: cover; background: var(--bg3); display: flex; align-items: center; justify-content: center; font-size: 3rem; color: var(--muted); }
+  .dir-card-nofoto { font-size: 3rem; color: var(--muted); }
+  .dir-card-body { padding: 0.75rem 1rem 1rem; }
+  .dir-card-nombre { font-weight: 600; font-size: 1rem; color: var(--text); margin-bottom: 0.25rem; }
+  .dir-card-desc { font-size: 0.85rem; color: var(--muted); margin-bottom: 0.5rem; line-height: 1.4; }
+  .dir-card-estrellas { font-size: 1rem; letter-spacing: 1px; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.3rem; }
+  .dir-card-total { font-size: 0.7rem; color: var(--muted); }
+  .dir-card-dato { font-size: 0.8rem; color: var(--muted); margin-bottom: 0.25rem; }
+  .dir-card-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; flex-wrap: wrap; }
+  .dir-tel-btn { display: inline-flex; align-items: center; gap: 0.4rem; background: rgba(37,211,102,.1); color: #25d366; border: 1px solid rgba(37,211,102,.2); border-radius: 8px; font-size: 0.75rem; font-weight: 600; padding: 0.35rem 0.75rem; text-decoration: none; transition: background 0.15s; }
+  .dir-tel-btn:hover { background: rgba(37,211,102,.2); }
+  .dir-calificar-btn { background: none; border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-size: 0.75rem; font-weight: 600; padding: 0.35rem 0.75rem; cursor: pointer; transition: background 0.15s, color 0.15s; }
+  .dir-calificar-btn:hover { background: var(--bg3); color: var(--text); }
+  .share-btn { display: inline-flex; align-items: center; gap: 0.4rem; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: 600; padding: 0.4rem 0.8rem; cursor: pointer; color: #fff; transition: opacity 0.2s; }
   .share-btn:hover { opacity: 0.85; }
   .share-fb { background: #1877f2; }
   .share-wacopy { background: #25d366; }
-  @media (max-width: 500px) {
-    .dir-grid {
-      grid-template-columns: 1fr 1fr;
-    }
-    .dir-card-foto {
-      height: 100px;
-    }
-  }
-  @media (max-width: 380px) {
-    .dir-grid {
-      grid-template-columns: 1fr;
-    }
-  }
+  @media (max-width: 500px) { .dir-grid { grid-template-columns: 1fr 1fr; } .dir-card-foto { height: 100px; } }
+  @media (max-width: 380px) { .dir-grid { grid-template-columns: 1fr; } }
 </style>
 {% endblock %}
