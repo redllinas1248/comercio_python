@@ -4,8 +4,23 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <meta name="theme-color" content="#0f172a"/>
-  <meta name="description" content="Ventas Locales José Azueta"/>
-  <title>Ventas Locales — José Azueta</title>
+  
+  <!-- Meta tags dinámicas -->
+  <meta name="description" content="{{ meta_description or 'Ventas Locales José Azueta - Compra, vende y conecta en tu comunidad' }}"/>
+  <title>{{ meta_title or 'Ventas Locales — José Azueta' }}</title>
+
+  <!-- Open Graph (para compartir en redes sociales) -->
+  <meta property="og:title" content="{{ meta_title or 'Ventas Locales José Azueta' }}"/>
+  <meta property="og:description" content="{{ meta_description or 'Compra, vende y conecta en tu comunidad de José Azueta' }}"/>
+  <meta property="og:url" content="{{ meta_url or request.url }}"/>
+  <meta property="og:type" content="website"/>
+  <meta property="og:site_name" content="Ventas Locales José Azueta"/>
+  {% if meta_image %}
+    <meta property="og:image" content="{{ meta_image }}"/>
+  {% else %}
+    <meta property="og:image" content="{{ logo_url or '/static/img/icon-512.png' }}"/>
+  {% endif %}
+
   <link rel="manifest" href="/static/manifest.json"/>
   <link rel="apple-touch-icon" href="/static/img/icon-192.png"/>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>

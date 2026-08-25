@@ -42,7 +42,7 @@ function compartirWhatsApp() {
   window.open(`https://wa.me/?text=${msg}%20${url}`, '_blank');
 }
 
-const TIPO = 'servicios';  // ← CORRECTO
+const TIPO = 'servicios';
 
 async function cargarServicios() {
   const wrap = document.getElementById('servicios-wrap');
@@ -81,6 +81,12 @@ async function cargarServicios() {
                     </svg>
                     ${escapeHtml(item.telefono)}
                   </a>
+                  <!-- BOTÓN VER EN MAPA (solo si hay dirección) -->
+                  ${item.direccion ? `
+                    <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.direccion)}" target="_blank" class="dir-mapa-btn" style="display:inline-flex; align-items:center; gap:0.3rem; background:rgba(56,189,248,.1); color:var(--accent); border:1px solid rgba(56,189,248,.2); border-radius:8px; font-size:0.75rem; font-weight:600; padding:0.35rem 0.75rem; text-decoration:none; transition:background 0.15s;">
+                      📍 Ver en mapa
+                    </a>
+                  ` : ''}
                   <button class="dir-calificar-btn" onclick="calificar(${item.id})" title="Calificar">⭐ Calificar</button>
                 </div>
               ` : ''}
@@ -143,9 +149,11 @@ document.addEventListener('DOMContentLoaded', cargarServicios);
   .dir-card-estrellas { font-size: 1rem; letter-spacing: 1px; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.3rem; }
   .dir-card-total { font-size: 0.7rem; color: var(--muted); }
   .dir-card-dato { font-size: 0.8rem; color: var(--muted); margin-bottom: 0.25rem; }
-  .dir-card-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; flex-wrap: wrap; }
+  .dir-card-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; flex-wrap: wrap; align-items: center; }
   .dir-tel-btn { display: inline-flex; align-items: center; gap: 0.4rem; background: rgba(37,211,102,.1); color: #25d366; border: 1px solid rgba(37,211,102,.2); border-radius: 8px; font-size: 0.75rem; font-weight: 600; padding: 0.35rem 0.75rem; text-decoration: none; transition: background 0.15s; }
   .dir-tel-btn:hover { background: rgba(37,211,102,.2); }
+  .dir-mapa-btn { display: inline-flex; align-items: center; gap: 0.3rem; background: rgba(56,189,248,.1); color: var(--accent); border: 1px solid rgba(56,189,248,.2); border-radius: 8px; font-size: 0.75rem; font-weight: 600; padding: 0.35rem 0.75rem; text-decoration: none; transition: background 0.15s; }
+  .dir-mapa-btn:hover { background: rgba(56,189,248,.2); }
   .dir-calificar-btn { background: none; border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-size: 0.75rem; font-weight: 600; padding: 0.35rem 0.75rem; cursor: pointer; transition: background 0.15s, color 0.15s; }
   .dir-calificar-btn:hover { background: var(--bg3); color: var(--text); }
   .share-btn { display: inline-flex; align-items: center; gap: 0.4rem; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: 600; padding: 0.4rem 0.8rem; cursor: pointer; color: #fff; transition: opacity 0.2s; }

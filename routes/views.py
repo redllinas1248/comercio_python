@@ -8,6 +8,7 @@ from PIL import Image
 import io
 import json
 from pywebpush import webpush, WebPushException
+from datetime import datetime
 
 views_bp = Blueprint('views', __name__)
 
@@ -83,6 +84,10 @@ def admin_required(f):
     return decorated
 
 
+# ============================================================
+# RUTAS PÚBLICAS CON META TAGS PARA SEO
+# ============================================================
+
 @views_bp.route('/')
 def index():
     db = get_db()
@@ -97,53 +102,126 @@ def index():
     finally:
         cur.close()
 
-    return render_template('index.html')
+    return render_template('index.html',
+        meta_title='Ventas Locales José Azueta - Compra, vende y conecta',
+        meta_description='Plataforma de compra, venta y servicios locales en José Azueta. Publica tus productos, encuentra servicios y conecta con tu comunidad.'
+    )
 
 
 @views_bp.route('/login')
 def login():
     if get_current_user():
         return redirect(url_for('views.index'))
-    return render_template('auth.html')
+    return render_template('auth.html',
+        meta_title='Iniciar sesión - Ventas Locales José Azueta',
+        meta_description='Accede a tu cuenta de Ventas Locales José Azueta para publicar, comentar y vender.'
+    )
 
 
 @views_bp.route('/perfil')
 @login_required
 def perfil():
-    return render_template('perfil.html')
+    return render_template('perfil.html',
+        meta_title='Mi perfil - Ventas Locales José Azueta',
+        meta_description='Gestiona tu perfil, publicaciones y puntos en Ventas Locales José Azueta.'
+    )
 
 
 @views_bp.route('/mensajes')
 @login_required
 def mensajes():
-    return render_template('mensajes.html')
+    return render_template('mensajes.html',
+        meta_title='Mensajes - Ventas Locales José Azueta',
+        meta_description='Tus conversaciones con otros usuarios de Ventas Locales José Azueta.'
+    )
 
 
 @views_bp.route('/notificaciones')
 @login_required
 def notificaciones():
-    return render_template('notificaciones.html')
+    return render_template('notificaciones.html',
+        meta_title='Notificaciones - Ventas Locales José Azueta',
+        meta_description='Todas tus notificaciones de Ventas Locales José Azueta.'
+    )
 
 
 @views_bp.route('/buscar')
 def buscar():
-    return render_template('buscar.html')
+    return render_template('buscar.html',
+        meta_title='Buscar - Ventas Locales José Azueta',
+        meta_description='Encuentra publicaciones, usuarios y servicios en José Azueta.'
+    )
 
 
 @views_bp.route('/publicacion/<int:pub_id>')
 def detalle_pub(pub_id):
-    return render_template('detalle_pub.html', pub_id=pub_id)
+    # Obtener datos de la publicación para meta tags
+    meta_title = 'Publicación - Ventas Locales José Azueta'
+    meta_description = 'Detalle de publicación en Ventas Locales José Azueta.'
+    meta_image = None
+    
+    try:
+        from routes.publicaciones import detalle
+        # Llamamos al endpoint de detalle para obtener los datos
+        # Pero mejor hacemos una consulta directa para no mezclar respuestas JSON
+        db = get_db()
+        cur = db.cursor()
+        cur.execute("""
+            SELECT p.contenido, u.nombre as autor, 
+                   (SELECT ruta FROM publicaciones_imagenes WHERE publicacion_id = p.id LIMIT 1) as imagen
+            FROM publicaciones p
+            LEFT JOIN usuarios u ON u.telefono = p.telefono
+            WHERE p.id = %s
+        """, (pub_id,))
+        row = cur.fetchone()
+        cur.close()
+        if row:
+            contenido = row[0] or ''
+            autor = row[1] or 'Usuario'
+            meta_title = f"{autor} - {contenido[:60]}" if contenido else f"Publicación de {autor}"
+            meta_description = contenido[:160] if contenido else f"Publicación de {autor} en Ventas Locales José Azueta."
+            if row[2]:
+                meta_image = row[2]
+    except Exception as e:
+        current_app.logger.error(f"Error obteniendo detalles de publicación para meta: {e}")
+    
+    return render_template('detalle_pub.html', pub_id=pub_id,
+        meta_title=meta_title,
+        meta_description=meta_description,
+        meta_image=meta_image
+    )
 
 
 @views_bp.route('/usuario/<telefono>')
 def perfil_usuario(telefono):
-    return render_template('perfil_usuario.html', telefono=telefono)
+    # Obtener nombre del usuario para meta
+    meta_title = f"Perfil de usuario - Ventas Locales José Azueta"
+    meta_description = f"Perfil de {telefono} en Ventas Locales José Azueta."
+    try:
+        db = get_db()
+        cur = db.cursor()
+        cur.execute("SELECT nombre FROM usuarios WHERE telefono = %s", (telefono,))
+        row = cur.fetchone()
+        cur.close()
+        if row and row[0]:
+            meta_title = f"{row[0]} - Perfil en Ventas Locales José Azueta"
+            meta_description = f"Perfil de {row[0]} en Ventas Locales José Azueta."
+    except Exception:
+        pass
+    
+    return render_template('perfil_usuario.html', telefono=telefono,
+        meta_title=meta_title,
+        meta_description=meta_description
+    )
 
 
 @views_bp.route('/admin')
 @admin_required
 def admin():
-    return render_template('admin.html')
+    return render_template('admin.html',
+        meta_title='Panel de Administración - Ventas Locales José Azueta',
+        meta_description='Administra usuarios, publicaciones y contenido de Ventas Locales José Azueta.'
+    )
 
 
 @views_bp.route('/admin/logo', methods=['POST'])
@@ -215,17 +293,26 @@ def subir_logo():
 
 @views_bp.route('/servicios')
 def servicios():
-    return render_template('servicios.html')
+    return render_template('servicios.html',
+        meta_title='Servicios en José Azueta - Plomeros, electricistas y más',
+        meta_description='Encuentra los mejores servicios profesionales en José Azueta. Plomeros, electricistas, carpinteros, mecánicos y más.'
+    )
 
 
 @views_bp.route('/emergencias')
 def emergencias():
-    return render_template('emergencias.html')
+    return render_template('emergencias.html',
+        meta_title='Emergencias en José Azueta - Hospitales, farmacias y números de contacto',
+        meta_description='Información esencial de emergencias en José Azueta: hospitales, farmacias, bomberos, policía y números de contacto.'
+    )
 
 
 @views_bp.route('/transmisiones')
 def transmisiones():
-    return render_template('transmisiones.html')
+    return render_template('transmisiones.html',
+        meta_title='Transmisiones en vivo - José Azueta',
+        meta_description='Mira transmisiones en vivo de eventos, noticias y actividades en José Azueta.'
+    )
 
 
 @views_bp.route('/api/estadisticas', methods=['GET'])
@@ -261,7 +348,56 @@ def offline():
 
 
 # ============================================================
-# ===== NOTIFICACIONES PUSH ===================================
+# SITEMAP Y ROBOTS.TXT (SEO)
+# ============================================================
+
+@views_bp.route('/sitemap.xml')
+def sitemap():
+    db = get_db()
+    cur = db.cursor()
+    
+    # URLs estáticas
+    urls = [
+        {'loc': '/', 'priority': '1.0'},
+        {'loc': '/servicios', 'priority': '0.9'},
+        {'loc': '/emergencias', 'priority': '0.9'},
+        {'loc': '/transmisiones', 'priority': '0.8'},
+        {'loc': '/buscar', 'priority': '0.6'},
+        {'loc': '/login', 'priority': '0.5'},
+    ]
+    
+    # Publicaciones (más recientes)
+    cur.execute("SELECT id, fecha FROM publicaciones ORDER BY fecha DESC LIMIT 1000")
+    for row in cur.fetchall():
+        urls.append({'loc': f'/publicacion/{row[0]}', 'priority': '0.7'})
+    
+    # Servicios / Directorio (activos)
+    cur.execute("SELECT id FROM directorio WHERE activo = true")
+    for row in cur.fetchall():
+        urls.append({'loc': f'/servicio/{row[0]}', 'priority': '0.6'})  # Ruta de detalle si existe
+    
+    cur.close()
+    
+    now = datetime.now().strftime('%Y-%m-%d')
+    
+    return render_template('sitemap.xml', urls=urls, now=now), 200, {'Content-Type': 'application/xml'}
+
+
+@views_bp.route('/robots.txt')
+def robots():
+    domain = request.host_url.rstrip('/')
+    return f"""User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /perfil
+Disallow: /mensajes
+Disallow: /notificaciones
+Sitemap: {domain}/sitemap.xml
+""", 200, {'Content-Type': 'text/plain'}
+
+
+# ============================================================
+# NOTIFICACIONES PUSH (WEB PUSH API)
 # ============================================================
 
 @views_bp.route('/api/push/vapid_public_key', methods=['GET'])
