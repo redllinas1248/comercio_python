@@ -2,7 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 {% for url in urls %}
   <url>
-    <loc>{{ request.host_url.rstrip('/') ~ url.loc }}</loc>
+    <loc>{{ request.host_url.rstrip('/') }}{{ url.loc }}</loc>
     <lastmod>{{ now }}</lastmod>
     <priority>{{ url.priority }}</priority>
   </url>
