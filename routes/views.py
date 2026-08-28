@@ -53,7 +53,8 @@ def inject_site_config():
 
     return {
         'visitas_totales': visitas_totales,
-        'logo_url': _config_value('logo_url', DEFAULT_LOGO)
+        'logo_url': _config_value('logo_url', DEFAULT_LOGO),
+        'default_og_image': '/static/img/og-image.jpg'  # <-- NUEVO: imagen por defecto para Open Graph
     }
 
 
@@ -161,9 +162,6 @@ def detalle_pub(pub_id):
     meta_image = None
     
     try:
-        from routes.publicaciones import detalle
-        # Llamamos al endpoint de detalle para obtener los datos
-        # Pero mejor hacemos una consulta directa para no mezclar respuestas JSON
         db = get_db()
         cur = db.cursor()
         cur.execute("""
@@ -374,7 +372,7 @@ def sitemap():
     # Servicios / Directorio (activos)
     cur.execute("SELECT id FROM directorio WHERE activo = true")
     for row in cur.fetchall():
-        urls.append({'loc': f'/servicio/{row[0]}', 'priority': '0.6'})  # Ruta de detalle si existe
+        urls.append({'loc': f'/servicio/{row[0]}', 'priority': '0.6'})
     
     cur.close()
     
