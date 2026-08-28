@@ -54,7 +54,7 @@ def inject_site_config():
     return {
         'visitas_totales': visitas_totales,
         'logo_url': _config_value('logo_url', DEFAULT_LOGO),
-        'default_og_image': '/static/img/og-image.jpg'  # <-- NUEVO: imagen por defecto para Open Graph
+        'default_og_image': '/static/img/og-image.jpg'  # <-- Imagen por defecto para Open Graph
     }
 
 
@@ -494,3 +494,66 @@ def push_send():
                 current_app.logger.error(f"Error enviando notificación: {e}")
 
     return jsonify({'mensaje': f'Notificaciones enviadas a {success_count} suscriptores'})
+
+
+# ============================================================
+# ADMIN: ESTADÍSTICAS (gráficas)
+# ============================================================
+
+@views_bp.route('/api/admin/estadisticas')
+@admin_required
+def admin_estadisticas():
+    """Devuelve datos estadísticos para el panel de admin (totales y series diarias)."""
+    db = get_db()
+    cur = db.cursor()
+    
+    # Totales
+    cur.execute("SELECT COUNT(*) FROM usuarios")
+    total_usuarios = cur.fetchone()[0]
+    
+    cur.execute("SELECT COUNT(*) FROM publicaciones")
+    total_publicaciones = cur.fetchone()[0]
+    
+    cur.execute("SELECT COALESCE(SUM(total), 0) FROM visitas")
+    total_visitas = int(cur.fetchone()[0] or 0)
+    
+    # Últimos 30 días: visitas diarias
+    cur.execute("""
+        SELECT fecha, total FROM visitas 
+        WHERE fecha >= CURRENT_DATE - INTERVAL '30 days'
+        ORDER BY fecha
+    """)
+    visitas_diarias = [{'fecha': str(row[0]), 'total': row[1]} for row in cur.fetchall()]
+    
+    # Publicaciones por día (últimos 30 días)
+    cur.execute("""
+        SELECT DATE(fecha) as dia, COUNT(*) as total
+        FROM publicaciones
+        WHERE fecha >= NOW() - INTERVAL '30 days'
+        GROUP BY dia
+        ORDER BY dia
+    """)
+    pubs_diarias = [{'fecha': str(row[0]), 'total': row[1]} for row in cur.fetchall()]
+    
+    # Nuevos usuarios por día (últimos 30 días)
+    cur.execute("""
+        SELECT DATE(fecha_creacion) as dia, COUNT(*) as total
+        FROM usuarios
+        WHERE fecha_creacion >= NOW() - INTERVAL '30 days'
+        GROUP BY dia
+        ORDER BY dia
+    """)
+    usuarios_diarios = [{'fecha': str(row[0]), 'total': row[1]} for row in cur.fetchall()]
+    
+    cur.close()
+    
+    return jsonify({
+        'totales': {
+            'usuarios': total_usuarios,
+            'publicaciones': total_publicaciones,
+            'visitas': total_visitas
+        },
+        'visitas_diarias': visitas_diarias,
+        'pubs_diarias': pubs_diarias,
+        'usuarios_diarios': usuarios_diarios
+    })

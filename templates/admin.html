@@ -1,5 +1,79 @@
 {% extends "base.html" %}
 {% block content %}
+<style>
+  /* ===== ADMIN: ESTADÍSTICAS ===== */
+  .stats-dashboard {
+    padding: 0.5rem 0;
+  }
+  .stats-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .stat-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .stat-card-icon {
+    font-size: 2rem;
+    opacity: 0.7;
+  }
+  .stat-card-info {
+    display: flex;
+    flex-direction: column;
+  }
+  .stat-card-number {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.2;
+  }
+  .stat-card-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+  .stats-charts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+  .chart-container {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    height: 250px;
+  }
+  .chart-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+  }
+  .chart-container canvas {
+    width: 100% !important;
+    height: calc(100% - 1.5rem) !important;
+  }
+  @media (max-width: 700px) {
+    .stats-charts {
+      grid-template-columns: 1fr;
+    }
+    .chart-container {
+      height: 200px;
+    }
+  }
+</style>
+
 <div class="admin-wrap">
   <div class="admin-header">
     <h2 class="admin-title">⚙️ Panel Admin</h2>
@@ -10,6 +84,7 @@
     <button class="admin-tab" onclick="setAdminTab('users', this)">Usuarios</button>
     <button class="admin-tab" onclick="setAdminTab('directorio', this)">Directorio</button>
     <button class="admin-tab" onclick="setAdminTab('transmisiones', this)">Transmisiones</button>
+    <button class="admin-tab" onclick="setAdminTab('estadisticas', this)">📊 Estadísticas</button>
     <button class="admin-tab" onclick="setAdminTab('config', this)">Configuración</button>
   </div>
 
@@ -23,7 +98,7 @@
     <div id="users-wrap"></div>
   </div>
 
-  <!-- ===== DIRECTORIO (con foto tipo file) ===== -->
+  <!-- ===== DIRECTORIO ===== -->
   <div id="admin-directorio" style="display:none">
     <div class="dir-admin-form" id="dir-form">
       <h3 class="p-section-title" style="margin-bottom:.75rem">Agregar entrada</h3>
@@ -33,7 +108,6 @@
             <label>Ícono</label>
             <input id="df-icono" type="text" value="📍" placeholder="Emoji" maxlength="4" style="width:70px"/>
           </div>
-
           <div class="p-field" style="grid-column:span 1">
             <label>Tipo</label>
             <select id="df-tipo" class="select-field" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:.65rem .85rem;outline:none;">
@@ -58,21 +132,18 @@
             <label>Dirección (opcional)</label>
             <input id="df-dir" type="text" placeholder="Ej: Calle Hidalgo 45"/>
           </div>
-
-          <!-- ===== CAMPO FOTO (input file) ===== -->
+          <!-- Foto -->
           <div class="p-field" style="grid-column:span 2">
             <label>Foto</label>
             <input id="df-foto" type="file" accept="image/*" />
             <small style="color:var(--muted);font-size:.7rem;">Sube una imagen desde tu PC</small>
           </div>
-
-          <!-- ===== DESCRIPCIÓN CORTA ===== -->
+          <!-- Descripción corta -->
           <div class="p-field" style="grid-column:span 2">
             <label>Descripción corta</label>
             <textarea id="df-descripcion" rows="2" placeholder="Breve descripción del servicio..." style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.9rem;padding:.65rem .85rem;outline:none;width:100%;resize:vertical;"></textarea>
           </div>
         </div>
-
         <button type="button" class="p-btn-save" style="margin-top:.75rem" onclick="guardarDir()">
           <span class="btn-text" id="df-btn-txt">➕ Agregar</span>
           <div class="spinner-btn"></div>
@@ -85,7 +156,6 @@
 
   <!-- TRANSMISIONES -->
   <div id="admin-transmisiones" style="display:none">
-    <!-- ... contenido de transmisiones ... -->
     <div class="trans-admin-form" id="trans-form">
       <h3 class="p-section-title" style="margin-bottom:.75rem">Agregar transmisión</h3>
       <div class="trans-form-grid">
@@ -134,6 +204,49 @@
     <div id="trans-admin-wrap" style="margin-top:1rem"></div>
   </div>
 
+  <!-- ===== ESTADÍSTICAS (NUEVO) ===== -->
+  <div id="admin-estadisticas" style="display:none">
+    <div class="stats-dashboard">
+      <div class="stats-cards">
+        <div class="stat-card">
+          <div class="stat-card-icon">👥</div>
+          <div class="stat-card-info">
+            <span class="stat-card-number" id="stat-total-usuarios">0</span>
+            <span class="stat-card-label">Usuarios</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon">📝</div>
+          <div class="stat-card-info">
+            <span class="stat-card-number" id="stat-total-publicaciones">0</span>
+            <span class="stat-card-label">Publicaciones</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon">👁️</div>
+          <div class="stat-card-info">
+            <span class="stat-card-number" id="stat-total-visitas">0</span>
+            <span class="stat-card-label">Visitas</span>
+          </div>
+        </div>
+      </div>
+      <div class="stats-charts">
+        <div class="chart-container">
+          <h4 class="chart-title">Visitas diarias (últimos 30 días)</h4>
+          <canvas id="chart-visitas"></canvas>
+        </div>
+        <div class="chart-container">
+          <h4 class="chart-title">Publicaciones por día</h4>
+          <canvas id="chart-publicaciones"></canvas>
+        </div>
+        <div class="chart-container">
+          <h4 class="chart-title">Nuevos usuarios por día</h4>
+          <canvas id="chart-usuarios"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- CONFIGURACIÓN -->
   <div id="admin-config" style="display:none">
     <div class="admin-config-card">
@@ -165,12 +278,14 @@ function setAdminTab(tab, el) {
   document.getElementById('admin-users').style.display       = tab === 'users'        ? 'block' : 'none';
   document.getElementById('admin-directorio').style.display  = tab === 'directorio'   ? 'block' : 'none';
   document.getElementById('admin-transmisiones').style.display = tab === 'transmisiones' ? 'block' : 'none';
+  document.getElementById('admin-estadisticas').style.display = tab === 'estadisticas' ? 'block' : 'none';
   document.getElementById('admin-config').style.display      = tab === 'config'       ? 'block' : 'none';
   
   if (tab === 'pubs')         cargarAdminPubs();
   if (tab === 'users')        cargarAdminUsers();
   if (tab === 'directorio')   cargarAdminDir();
   if (tab === 'transmisiones') cargarAdminTrans();
+  if (tab === 'estadisticas') cargarEstadisticas();
 }
 
 // ===== PUBLICACIONES =====
@@ -300,7 +415,7 @@ async function banearUser(telefono) {
   } catch(e) { toast(e.message); }
 }
 
-// ===== DIRECTORIO (con subida de imagen a Cloudinary) =====
+// ===== DIRECTORIO =====
 let dirItems = [];
 
 async function cargarAdminDir() {
@@ -309,15 +424,10 @@ async function cargarAdminDir() {
   try {
     const grupos = await api('/api/directorio');
     dirItems = Object.values(grupos).flat();
-
-    const cats = [...new Set(Object.keys(grupos))];
-    
-
     if (!dirItems.length) {
       wrap.innerHTML = `<p style="color:var(--muted);font-size:.85rem;padding:.5rem 0">Sin entradas aún.</p>`;
       return;
     }
-
     wrap.innerHTML = `
       <div class="admin-table-wrap">
         <table class="admin-table">
@@ -586,6 +696,71 @@ async function subirLogo() {
   } finally {
     btn.classList.remove('loading');
     btn.disabled = false;
+  }
+}
+
+// ============================================================
+// ===== ADMIN: ESTADÍSTICAS (NUEVO) =====
+// ============================================================
+async function cargarEstadisticas() {
+  try {
+    const data = await api('/api/admin/estadisticas');
+    // Totales
+    document.getElementById('stat-total-usuarios').textContent = data.totales.usuarios;
+    document.getElementById('stat-total-publicaciones').textContent = data.totales.publicaciones;
+    document.getElementById('stat-total-visitas').textContent = data.totales.visitas;
+
+    // Gráficas (requiere Chart.js)
+    if (typeof Chart !== 'undefined') {
+      // Destruir gráficos existentes para evitar duplicados
+      if (window.chartInstances) {
+        window.chartInstances.forEach(c => c.destroy());
+      }
+      window.chartInstances = [];
+
+      function crearGrafico(id, etiqueta, datos, color) {
+        const ctx = document.getElementById(id).getContext('2d');
+        const fechas = datos.map(d => d.fecha);
+        const valores = datos.map(d => d.total);
+        const chart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: fechas,
+            datasets: [{
+              label: etiqueta,
+              data: valores,
+              backgroundColor: color + '33',
+              borderColor: color,
+              borderWidth: 2
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false }
+            },
+            scales: {
+              y: { beginAtZero: true }
+            }
+          }
+        });
+        window.chartInstances.push(chart);
+      }
+
+      crearGrafico('chart-visitas', 'Visitas', data.visitas_diarias, '#38bdf8');
+      crearGrafico('chart-publicaciones', 'Publicaciones', data.pubs_diarias, '#34d399');
+      crearGrafico('chart-usuarios', 'Usuarios', data.usuarios_diarios, '#fbbf24');
+    } else {
+      // Si Chart.js no está cargado, cargarlo dinámicamente
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+      script.onload = () => cargarEstadisticas(); // Recargar después de cargar
+      document.head.appendChild(script);
+    }
+  } catch(e) {
+    console.error('Error cargando estadísticas:', e);
+    toast('Error al cargar estadísticas');
   }
 }
 
