@@ -54,7 +54,7 @@ def inject_site_config():
     return {
         'visitas_totales': visitas_totales,
         'logo_url': _config_value('logo_url', DEFAULT_LOGO),
-        'default_og_image': '/static/img/og-image.jpg'  # <-- Imagen por defecto para Open Graph
+        'default_og_image': '/static/img/og-image.jpg'
     }
 
 
@@ -103,9 +103,15 @@ def index():
     finally:
         cur.close()
 
+    # ===== OBTENER CONFIGURACIÓN DE BOTONES PERSONALIZADOS =====
+    btn_entretenimiento = get_boton_config('entretenimiento')
+    btn_educacion = get_boton_config('educacion')
+
     return render_template('index.html',
         meta_title='Ventas Locales José Azueta - Compra, vende y conecta',
-        meta_description='Plataforma de compra, venta y servicios locales en José Azueta. Publica tus productos, encuentra servicios y conecta con tu comunidad.'
+        meta_description='Plataforma de compra, venta y servicios locales en José Azueta. Publica tus productos, encuentra servicios y conecta con tu comunidad.',
+        btn_entretenimiento=btn_entretenimiento,
+        btn_educacion=btn_educacion
     )
 
 
@@ -546,9 +552,6 @@ def admin_estadisticas():
     usuarios_diarios = [{'fecha': str(row[0]), 'total': row[1]} for row in cur.fetchall()]
     
     cur.close()
-
-    
-
     
     return jsonify({
         'totales': {
@@ -560,6 +563,7 @@ def admin_estadisticas():
         'pubs_diarias': pubs_diarias,
         'usuarios_diarios': usuarios_diarios
     })
+
 
 # ============================================================
 # CONFIGURACIÓN DE BOTONES PERSONALIZADOS
