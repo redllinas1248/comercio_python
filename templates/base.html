@@ -20,7 +20,20 @@
   {% else %}
     <meta property="og:image" content="{{ default_og_image or logo_url or '/static/img/icon-512.png' }}"/>
   {% endif %}
-  <!-- Nota: Asegúrate de definir 'default_og_image' en el contexto de la app (views.py) -->
+
+  <!-- ============================================================ -->
+  <!-- GOOGLE ANALYTICS (si está configurado)                       -->
+  <!-- ============================================================ -->
+  {% if config.GOOGLE_ANALYTICS_ID %}
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id={{ config.GOOGLE_ANALYTICS_ID }}"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', '{{ config.GOOGLE_ANALYTICS_ID }}');
+  </script>
+  {% endif %}
 
   <link rel="manifest" href="/static/manifest.json"/>
   <link rel="apple-touch-icon" href="/static/img/icon-192.png"/>

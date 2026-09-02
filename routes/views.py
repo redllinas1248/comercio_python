@@ -546,6 +546,9 @@ def admin_estadisticas():
     usuarios_diarios = [{'fecha': str(row[0]), 'total': row[1]} for row in cur.fetchall()]
     
     cur.close()
+
+    
+
     
     return jsonify({
         'totales': {
@@ -557,3 +560,60 @@ def admin_estadisticas():
         'pubs_diarias': pubs_diarias,
         'usuarios_diarios': usuarios_diarios
     })
+
+# ============================================================
+# CONFIGURACIÓN DE BOTONES PERSONALIZADOS
+# ============================================================
+
+def get_config_value(clave, default=None):
+    """Obtiene un valor de configuración de la base de datos."""
+    db = get_db()
+    cur = db.cursor()
+    try:
+        cur.execute("SELECT valor FROM configuracion WHERE clave = %s", (clave,))
+        row = cur.fetchone()
+        return row[0] if row else default
+    except Exception:
+        return default
+    finally:
+        cur.close()
+
+def get_boton_config(prefix):
+    """Obtiene la configuración completa de un botón."""
+    return {
+        'titulo': get_config_value(f'btn_{prefix}_titulo', ''),
+        'sub': get_config_value(f'btn_{prefix}_sub', ''),
+        'icono': get_config_value(f'btn_{prefix}_icono', '📍'),
+        'enlace': get_config_value(f'btn_{prefix}_enlace', '#'),
+        'activo': get_config_value(f'btn_{prefix}_activo', '1') == '1'
+    }
+
+@views_bp.route('/api/admin/botones', methods=['GET'])
+@admin_required
+def admin_botones():
+    """Devuelve la configuración de los botones personalizados."""
+    return jsonify({
+        'entretenimiento': get_boton_config('entretenimiento'),
+        'educacion': get_boton_config('educacion')
+    })
+
+@views_bp.route('/api/admin/botones', methods=['POST'])
+@admin_required
+def admin_guardar_botones():
+    """Guarda la configuración de los botones personalizados."""
+    data = request.get_json(silent=True) or {}
+    db = get_db()
+    cur = db.cursor()
+    
+    for key, value in data.items():
+        # Solo guardar claves que empiecen con btn_
+        if key.startswith('btn_'):
+            cur.execute("""
+                INSERT INTO configuracion (clave, valor)
+                VALUES (%s, %s)
+                ON CONFLICT (clave) DO UPDATE SET valor = EXCLUDED.valor
+            """, (key, value))
+    
+    db.commit()
+    cur.close()
+    return jsonify({'mensaje': 'Configuración guardada'})

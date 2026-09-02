@@ -2009,3 +2009,29 @@ body {
   letter-spacing: 0.05em;
   margin-bottom: 0.25rem;
 }
+/* ===== BOTONES PERSONALIZADOS ===== */
+.seccion-entretenimiento {
+  background: linear-gradient(135deg, #1f3a3a 0%, #1e293b 100%);
+  border-color: rgba(236, 72, 153, 0.2);
+  box-shadow: 0 2px 12px rgba(236, 72, 153, 0.08);
+}
+.seccion-entretenimiento:hover {
+  border-color: rgba(236, 72, 153, 0.4);
+  box-shadow: 0 4px 20px rgba(236, 72, 153, 0.15);
+}
+.seccion-entretenimiento::before {
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.05), transparent);
+}
+
+.seccion-educacion {
+  background: linear-gradient(135deg, #1f2a3a 0%, #1e293b 100%);
+  border-color: rgba(52, 211, 153, 0.2);
+  box-shadow: 0 2px 12px rgba(52, 211, 153, 0.08);
+}
+.seccion-educacion:hover {
+  border-color: rgba(52, 211, 153, 0.4);
+  box-shadow: 0 4px 20px rgba(52, 211, 153, 0.15);
+}
+.seccion-educacion::before {
+  background: linear-gradient(135deg, rgba(52, 211, 153, 0.05), transparent);
+}

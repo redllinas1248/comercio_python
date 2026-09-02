@@ -269,6 +269,77 @@
   </div>
 </div>
 
+<!-- ===== CONFIGURACIÓN DE BOTONES PERSONALIZADOS ===== -->
+<div class="admin-config-card" style="margin-top:1.5rem;">
+  <h3 class="p-section-title" style="margin-bottom:0.75rem;">🎯 Botones personalizados</h3>
+  <p class="admin-config-help">Configura los botones que aparecerán en la página principal.</p>
+  
+  <form id="botones-form" onsubmit="event.preventDefault(); guardarBotones();">
+    <!-- Botón: Entretenimiento -->
+    <div class="botones-group">
+      <h4 style="color:var(--text);font-size:0.9rem;margin-bottom:0.5rem;">🎬 Entretenimiento</h4>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
+        <div class="p-field">
+          <label>Título</label>
+          <input id="btn-entretenimiento-titulo" type="text" placeholder="Ej: 🎬 Entretenimiento"/>
+        </div>
+        <div class="p-field">
+          <label>Subtítulo</label>
+          <input id="btn-entretenimiento-sub" type="text" placeholder="Ej: Videos, juegos y más"/>
+        </div>
+        <div class="p-field">
+          <label>Ícono (emoji)</label>
+          <input id="btn-entretenimiento-icono" type="text" placeholder="🎬" maxlength="4" style="width:70px;"/>
+        </div>
+        <div class="p-field">
+          <label>Enlace</label>
+          <input id="btn-entretenimiento-enlace" type="text" placeholder="/entretenimiento"/>
+        </div>
+        <div class="p-field" style="grid-column:span 2;">
+          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
+            <input id="btn-entretenimiento-activo" type="checkbox" /> Activo
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <hr style="border-color:var(--border);margin:1rem 0;"/>
+
+    <!-- Botón: Educación -->
+    <div class="botones-group">
+      <h4 style="color:var(--text);font-size:0.9rem;margin-bottom:0.5rem;">📚 Educación</h4>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
+        <div class="p-field">
+          <label>Título</label>
+          <input id="btn-educacion-titulo" type="text" placeholder="Ej: 📚 Educación"/>
+        </div>
+        <div class="p-field">
+          <label>Subtítulo</label>
+          <input id="btn-educacion-sub" type="text" placeholder="Ej: Cursos, tutoriales y más"/>
+        </div>
+        <div class="p-field">
+          <label>Ícono (emoji)</label>
+          <input id="btn-educacion-icono" type="text" placeholder="📚" maxlength="4" style="width:70px;"/>
+        </div>
+        <div class="p-field">
+          <label>Enlace</label>
+          <input id="btn-educacion-enlace" type="text" placeholder="/educacion"/>
+        </div>
+        <div class="p-field" style="grid-column:span 2;">
+          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
+            <input id="btn-educacion-activo" type="checkbox" /> Activo
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <button type="submit" class="p-btn-save" style="margin-top:1rem;">
+      <span class="btn-text">Guardar botones</span>
+      <div class="spinner-btn"></div>
+    </button>
+  </form>
+</div>
+
 <script>
 // ===== FUNCIONES ADMIN =====
 function setAdminTab(tab, el) {
@@ -286,6 +357,9 @@ function setAdminTab(tab, el) {
   if (tab === 'directorio')   cargarAdminDir();
   if (tab === 'transmisiones') cargarAdminTrans();
   if (tab === 'estadisticas') cargarEstadisticas();
+  if (tab === 'config') {
+  cargarBotones();
+}
 }
 
 // ===== PUBLICACIONES =====
@@ -768,5 +842,57 @@ async function cargarEstadisticas() {
 document.addEventListener('DOMContentLoaded', function() {
   cargarAdminPubs();
 });
+
+
+// ===== CONFIGURACIÓN DE BOTONES PERSONALIZADOS =====
+async function cargarBotones() {
+  try {
+    const data = await api('/api/admin/botones');
+    // Entretenimiento
+    document.getElementById('btn-entretenimiento-titulo').value = data.entretenimiento.titulo || '';
+    document.getElementById('btn-entretenimiento-sub').value = data.entretenimiento.sub || '';
+    document.getElementById('btn-entretenimiento-icono').value = data.entretenimiento.icono || '🎬';
+    document.getElementById('btn-entretenimiento-enlace').value = data.entretenimiento.enlace || '/entretenimiento';
+    document.getElementById('btn-entretenimiento-activo').checked = data.entretenimiento.activo;
+    // Educación
+    document.getElementById('btn-educacion-titulo').value = data.educacion.titulo || '';
+    document.getElementById('btn-educacion-sub').value = data.educacion.sub || '';
+    document.getElementById('btn-educacion-icono').value = data.educacion.icono || '📚';
+    document.getElementById('btn-educacion-enlace').value = data.educacion.enlace || '/educacion';
+    document.getElementById('btn-educacion-activo').checked = data.educacion.activo;
+  } catch(e) {
+    console.error('Error cargando botones:', e);
+  }
+}
+
+async function guardarBotones() {
+  const btn = document.querySelector('#botones-form .p-btn-save');
+  btn.classList.add('loading');
+  btn.disabled = true;
+  
+  const data = {
+    'btn_entretenimiento_titulo': document.getElementById('btn-entretenimiento-titulo').value.trim(),
+    'btn_entretenimiento_sub': document.getElementById('btn-entretenimiento-sub').value.trim(),
+    'btn_entretenimiento_icono': document.getElementById('btn-entretenimiento-icono').value.trim() || '🎬',
+    'btn_entretenimiento_enlace': document.getElementById('btn-entretenimiento-enlace').value.trim() || '/entretenimiento',
+    'btn_entretenimiento_activo': document.getElementById('btn-entretenimiento-activo').checked ? '1' : '0',
+    'btn_educacion_titulo': document.getElementById('btn-educacion-titulo').value.trim(),
+    'btn_educacion_sub': document.getElementById('btn-educacion-sub').value.trim(),
+    'btn_educacion_icono': document.getElementById('btn-educacion-icono').value.trim() || '📚',
+    'btn_educacion_enlace': document.getElementById('btn-educacion-enlace').value.trim() || '/educacion',
+    'btn_educacion_activo': document.getElementById('btn-educacion-activo').checked ? '1' : '0'
+  };
+  
+  try {
+    await api('/api/admin/botones', 'POST', data);
+    toast('✅ Configuración guardada');
+    cargarBotones();
+  } catch(e) {
+    toast('Error: ' + e.message);
+  } finally {
+    btn.classList.remove('loading');
+    btn.disabled = false;
+  }
+}
 </script>
 {% endblock %}
